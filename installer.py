@@ -1,17 +1,29 @@
 import importlib
 import subprocess
-import pkg_resources
 
-def modulInstaller():
-  # daftar module yang ingin di cek
-  modules = ['asyncio', 'os', 'requests', 'json', 'sys', 'dnspython', 'random', 'time', \
-  'datetime', 'requests_cache', 'threading', 'colorama', 'python-telegram-bot']
+class moduleInstaller:
+    def __init__(self):
+        # Daftar modul yang ingin dicek
+        self.modules = [
+            'asyncio', 'os', 'requests', 'json', 'sys', 'dnspython', 'random', 
+            'time', 'datetime', 'requests_cache', 'threading', 'colorama', 
+            'python-telegram-bot'
+        ]
 
-  # cek dan install module yang belum terinstall
-  for module in modules:
-      try:
-          importlib.import_module(module)
-          print(f"{module} sudah terinstall.")
-      except ModuleNotFoundError:
-          print(f"{module} belum terinstall. Menginstall {module}...")
-          subprocess.run(f"pip install {module}", shell=True)
+    def installModules(self):
+        """Memeriksa dan menginstal modul yang belum terpasang."""
+        for module in self.modules:
+            self._check_and_install(module)
+
+    def _check_and_install(self, module):
+        """Memeriksa keberadaan modul dan menginstalnya jika tidak ditemukan."""
+        try:
+            importlib.import_module(module)
+            print(f"{module} sudah terinstall.")
+        except ModuleNotFoundError:
+            print(f"{module} belum terinstall. Menginstall {module}...")
+            self._install(module)
+
+    def _install(self, module):
+        """Menginstal modul menggunakan pip."""
+        subprocess.run(f"pip install {module}", shell=True)

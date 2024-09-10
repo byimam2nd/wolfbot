@@ -2,32 +2,38 @@ try:
   import installer
   import color
   import mainFunction
+  import time
+  import telegram
+  import random
+  import sys
+  import csv
+  import datetime
+  import json
+  import requests
+  import time
 except ModuleNotFoundError:
-  installer.modulInstaller()
+  installer.moduleInstaller().installModules()
 
-from installer import modulInstaller
-from mainFunction import urls, dataFileJson, colorText, formated, requests, time, telegram, random, sysExit, sys, every, clearSystem, textShow, csv, csvData
-from color import bgHijau, bgRed, bgPutih, bgKuning, bgBiru, bgEnd, bgUngu, bgAbuAbu2, txtPutih, txtKuning, txtHitam, Reset
-bgWinLose = color.bgWinLose
-bgStep = color.bgStep
-txtStep = color.txtStep
+from installer import moduleInstaller
+from mainFunction import urls, utils, dnsManager, fileManager, repoUpdater, csvManager
+from color import color
 
 # mengambil nilai access_token dan masuk
 headers = 0
 def get_access():
   global headers
   try:
-    access_token = dataFileJson['Account']['Access Token']
+    access_token = fileManager.dataFileJson['Account']['Access Token']
     headers = {'Authorization': f'Bearer {access_token}'}
     print("Authentication berhasil")
     return access_token, headers
   except KeyError:
     print("Cek kembali access token anda")
-    sysExit()
+    utils.sysExit()
 
 def initConnection(): 
-  clearSystem()
-  mainFunction.get_json('data.json', dataFileJson)
+  utils.clearSystem()
+  fileManager.get_json('data.json', fileManager.dataFileJson)
   get_access()
 
 initConnection()
@@ -36,18 +42,17 @@ initConnection()
 accessCounter = 0
 print('Mencoba akses masuk')
 while True:
-  if accessCounter > (len(mainFunction.dns_servers_list)*10):
-    clearSystem()
+  if accessCounter > (len(dnsManager.dnsList)*10):
+    utils.clearSystem()
     print('Cek kestabilan koneksi anda')
     initConnection()
     accessCounter = 0
   try:
-    mainFunction.http_A()
-    #Tambahkan parameter verify=False untuk menggunakan HTTP/2
+    utils.http_A()
     print('\n---------Connection Checker---------')
     responses = []
     for i, url in enumerate(urls[:3]):
-      response = requests.get(url, headers=headers, verify=False)
+      response = requests.get(url, headers=headers)
       responses.append(response)
       print(f'Server {i+1} status code {response.status_code}')
     print('------------------------------------\n')
@@ -56,15 +61,13 @@ while True:
     break
   except Exception as e:
     accessCounter += 1
-    clearSystem()
+    utils.clearSystem()
     print(f'Akses di tolak error : {e}, mencoba menghubungkan kembali.')
-    mainFunction.current_dns_server_index += 1
-    if mainFunction.current_dns_server_index >= len(mainFunction.dns_servers_list):
-        mainFunction.current_dns_server_index = 0
+    dnsManager.dnsIndex += 1
+    if dnsManager.dnsIndex >= len(dnsManager.dnsList):
+        dnsManager.dnsIndex = 0
     initConnection()
 
-#Cek Server 0
-#print(json.dumps(response_0.json(), indent=2))
 dataBalance = responses[0].json()
 dataBalance_balances = dataBalance['balances']
 dataBalance_base = []
@@ -73,7 +76,6 @@ for balance in dataBalance_balances:
     amount = balance['amount']
     dataBalance_base.append([currency, amount])
 
-# menentukan lebar kolom
 currency = ""
 def mata_uang():
   global currency
@@ -83,13 +85,11 @@ def mata_uang():
   name_width = max(len(name) for name, _ in dataBalance_base)
   for i, (name, value) in enumerate(dataBalance_base, start=1):
       print(f"{i:>{index_width}}.  {name:<{name_width}} : {value}")
-  currency = "usdt"#input("Masukkan nama mata uang: ").lower()
-  mainFunction.time.sleep(3)
-  clearSystem()
+  currency = "trx"#input("Masukkan nama mata uang: ").lower()
+  time.sleep(3)
+  utils.clearSystem()
 mata_uang()
 
-#Cek Server 1
-#print(json.dumps(response_1.json(), indent=2))
 dataBets = responses[1].json()
 dataBets_base = []
 if currency in dataBets['dice']:
@@ -107,8 +107,6 @@ if currency in dataBets['dice']:
 else:
     print(f'Mata Uang {currency} tidak di temukan')
 
-#Cek Server 2
-#print(json.dumps(response_2.json(), indent=2))
 dataStatsRace = responses[2].json()
 race_data = dataStatsRace['race']
 user_data = race_data['user']
@@ -116,45 +114,42 @@ dataStatsRace_user = user_data['login']
 dataStatsRace_vip = user_data['vip_level']
 dataStatsRace_rank = race_data['rank']
 dataStatsRace_join = user_data['joined']
+data_seed = ""
+response_3 = None
 
-data_seed = ""  # membuat variabel global
-response_3 = 0
 def refresh_seed():
-  global response_3
-  #Cek Server 3
-  response_3 = requests.post(urls[3], headers=headers)
-  #print(f'Server Kode {response_3.status_code} for {urls[3]}')
-  #print(json.dumps(response_3.json(), indent=2))
-  global data_seed  # menggunakan variabel global
-  dataSeedRefresh = response_3.json()
-  data_seed = dataSeedRefresh['seed']
-  #print(f"data_seed {' '*(col_width_p-len('data_seed: '))} : {data_seed}")
+    global data_seed, response_3
+    response_3 = requests.post(urls[3], headers=headers)
+    data_seed = response_3.json().get('seed', '')
 
 col_width_p = 15
 col_width_v = 30
 
 #print status yang berada di atas layar
 def user_stats():
-  print("\n----------Stats Info----------")
-  print(f'User{" "*(col_width_p-len("User"))}: {dataStatsRace_user}')
-  print(f'Balance {currency}{" "*(col_width_p-len("Balance "+currency))}: {dataBets_bal_stat}')
-  print(f'Currency{" "*(col_width_p-len("Currency"))}: {currency.upper()}')
-  print(f'Total Bets{" "*(col_width_p-len("Total Bets"))}: {dataBets_total_bets}')
-  print(f'Win{" "*(col_width_p-len("Win"))}: {dataBets_win}')
-  print(f'Lose{" "*(col_width_p-len("Lose"))}: {dataBets_lose}')
-  print(f'Profit{" "*(col_width_p-len("Profit"))}: {dataBets_profit}')
-  print(f'Waggered {currency}{" "*(col_width_p-len("Waggered "+currency))}: {dataBets_wager_crpt}')
-  print(f'Waggered usd{" "*(col_width_p-len("Waggered USD"))}: {dataBets_wager_usd}')
-  print(f'Rank{" "*(col_width_p-len("Rank"))}: {dataStatsRace_rank}')
-  print(f'VIP{" "*(col_width_p-len("VIP"))}: {dataStatsRace_vip}')
-  print(f'Join{" "*(col_width_p-len("Join"))}: {dataStatsRace_join}')
-  print('\n')
-  mainFunction.time.sleep(3)
+    print("\n----------Stats Info----------")
+    def print_info(label, value):
+        print(f'{label: <{col_width_p}}: {value}')
+    print_info('User', dataStatsRace_user)
+    print_info(f'Balance {currency}', dataBets_bal_stat)
+    print_info('Currency', currency.upper())
+    print_info('Total Bets', dataBets_total_bets)
+    print_info('Win', dataBets_win)
+    print_info('Lose', dataBets_lose)
+    print_info('Profit', dataBets_profit)
+    print_info(f'Waggered {currency}', dataBets_wager_crpt)
+    print_info('Waggered usd', dataBets_wager_usd)
+    print_info('Rank', dataStatsRace_rank)
+    print_info('VIP', dataStatsRace_vip)
+    print_info('Join', dataStatsRace_join)
+    print('\n')
+    time.sleep(3)
+
   
 user_stats()
-start_time = mainFunction.datetime.datetime.now()
+start_time = datetime.datetime.now()
 refresh_seed()
-mainFunction.cache_init()
+utils.cache_init()
 
 def dice():
   data_bet = '''{
@@ -167,14 +162,20 @@ def dice():
       "bet_value": "50"
     }
   }'''
-
-  data = mainFunction.json.loads(data_bet)
-  bet = data['bet'] #main data proses post
-  bet['currency'] = currency
-  bet['amount'] = dataFileJson['Play Game']['Amount']
-
-  onGame = dataFileJson['onGame']
-  dataPlaceBet_bal_reset = bet['amount']
+  
+  def process_bet_data(data_bet):
+      data = json.loads(data_bet)
+      bet = data['bet']  # Main data proses post
+      bet.update({
+          'currency': currency,
+          'amount': fileManager.dataFileJson['Play Game']['Amount']
+      })
+  
+      onGame = fileManager.dataFileJson['onGame']
+      dataPlaceBet_bal_reset = bet['amount']
+  
+      return bet, onGame, dataPlaceBet_bal_reset
+  bet, onGame, dataPlaceBet_bal_reset = process_bet_data(data_bet)
 
   telebotWin = 0
   telebotLose = 0
@@ -197,27 +198,27 @@ def dice():
   statusProfitPersen = 0
   statusLastProfitPersen = 0
   statusBaseBalance = float(dataBets_bal_stat)
-  #print('sebelum post' + json.dumps(bet, indent=2))
+
   while True:
-    if (statusTotalLose+statusTotalWin) > 50:
-      if every(50, (statusTotalLose+statusTotalWin)):
-        refresh_seed()
+    if (statusTotalLose + statusTotalWin) > 50 and utils.every(50, (statusTotalLose + statusTotalWin)):
+      refresh_seed()
+    
     if statusHigherLose >= 10 and statusRiskAlert == "Medium" and statusWinLose == "W":
       refresh_seed()
-      sysExit()
-    current_time = mainFunction.datetime.datetime.now()
-    count_time = current_time - start_time
-    hours, remainder = divmod(count_time.total_seconds(), 3600)
-    minutes, seconds = divmod(remainder, 60)
-    formatted_time = f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
+      utils.sysExit()
+    
+    count_time = (datetime.datetime.now() - start_time).total_seconds()
+    hours, minutes = divmod(count_time, 3600)[0], divmod(count_time % 3600, 60)[0]
+    formatted_time = f"{int(hours):02}:{int(minutes):02}:{int(count_time % 60):02}"
+
     try:
-      ch_on = str("{:0.4f}".format(99/float(dataFileJson['Play Game']['Chance to Win']['Chance On'])))
-      ch_rand = random.randrange(int(dataFileJson['Play Game']['Chance to Win']['Chance Min']), int(dataFileJson['Play Game']['Chance to Win']['Chance Max']),1)
+      ch_on = str("{:0.4f}".format(99/float(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'])))
+      ch_rand = random.randrange(int(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Min']), int(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Max']),1)
       ch_rand_mul = str("{:0.4f}".format(99/ch_rand))
       
       def initChance():
-        chance_on = dataFileJson['Play Game']['Chance to Win']['Chance On']
-        chance_random = dataFileJson['Play Game']['Chance to Win']['Chance Random']
+        chance_on = fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On']
+        chance_random = fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Random']
         
         if chance_on != "0" and chance_random == "false":
             bet['multiplier'] = ch_on
@@ -235,39 +236,38 @@ def dice():
 
       def basebet_counter():
         global statusCurrentBaseBet
-        if dataFileJson['basebet counter'] == "true":
-          statusCurrentBaseBet = statusBaseBalance/float(dataFileJson['Play Game']['Divider'])
-          if statusCurrentLuck > statusTotalLuck and (float(bet['amount'])/float(dataPlaceBet_user['amount'])) < (statusTotalLuck/2/float(dataFileJson['Play Game']['Divider'])): 
+        if fileManager.dataFileJson['basebet counter'] == "true":
+          statusCurrentBaseBet = statusBaseBalance/float(fileManager.dataFileJson['Play Game']['Divider'])
+          if statusCurrentLuck > statusTotalLuck and (float(bet['amount'])/float(dataPlaceBet_user['amount'])) < (statusTotalLuck/2/float(fileManager.dataFileJson['Play Game']['Divider'])): 
             statusCurrentBaseBet /= statusTotalLuck
           else:
             statusCurrentBaseBet /= (statusTotalLuck/(statusCurrentLose+1))
-          dataFileJson['Play Game']['Amount'] = statusCurrentBaseBet
+          fileManager.dataFileJson['Play Game']['Amount'] = statusCurrentBaseBet
         return statusCurrentBaseBet
       statusCurrentBaseBet = basebet_counter()
+      
+      def process_place_bet(bet):
+          response_4 = requests.post(urls[4], headers=headers, json=bet, timeout=5)
+          dataPlaceBet = response_4.json()
+          return dataPlaceBet['bet'], dataPlaceBet['userBalance']
+      
+      dataPlaceBet_bet, dataPlaceBet_user = process_place_bet(bet)
 
-      #print('sebelum post' + json.dumps(bet, indent=2))
-      response_4 = requests.post(urls[4], headers=headers, json=bet, timeout=5)
-      #print('sudah di post' + json.dumps(bet, indent=2))
-      dataPlaceBet = response_4.json()
-      #print(json.dumps(dataPlaceBet, indent=2))
-      dataPlaceBet_bet = dataPlaceBet['bet']
-      dataPlaceBet_user = dataPlaceBet['userBalance']
-
-      if dataFileJson['Play Game']['Chance to Win']['Last Chance Game'] == "true": 
+      if fileManager.dataFileJson['Play Game']['Chance to Win']['Last Chance Game'] == "true": 
         if bet['rule'] == "over":
           if 99.99-float(dataPlaceBet_bet['result_value']) > 98.00 : 
-            dataFileJson['Play Game']['Chance to Win']['Chance On'] = 99.99 - 98.00
+            fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = 99.99 - 98.00
           else:
-            dataFileJson['Play Game']['Chance to Win']['Chance On'] = 99.99-float(dataPlaceBet_bet['result_value'])
+            fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = 99.99-float(dataPlaceBet_bet['result_value'])
         if bet['rule'] == "under":
           if float(dataPlaceBet_bet['result_value']) > 98.00 : 
-            dataFileJson['Play Game']['Chance to Win']['Chance On'] = 98.00
+            fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = 98.00
           else:
-            dataFileJson['Play Game']['Chance to Win']['Chance On'] = dataPlaceBet_bet['result_value']
+            fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = dataPlaceBet_bet['result_value']
       lose_data = []
       if dataPlaceBet['bet']['state'] == "win":
         lose_data.clear()
-        bgWinLose = bgHijau
+        color.bgWinLose = color.bgHijau
         statusWinLose = "W" 
         statusTotalWin += 1
         statusCurrentWin += 1
@@ -276,7 +276,7 @@ def dice():
           statusHigherWin = statusCurrentWin
       else: 
         lose_data.append(abs(float(dataPlaceBet_bet['profit'])))
-        bgWinLose = bgRed
+        color.bgWinLose = color.bgRed
         statusWinLose = "L"
         statusCurrentLose += 1
         statusTotalLose += 1
@@ -321,25 +321,25 @@ def dice():
       nextbet_counter()
       statusMultiplier, statusToBet = nextbet_counter()
       
-      bgRiskAlert = ""
-      txtRiskAlert = ""
+      color.bgRiskAlert = ""
+      color.txtRiskAlert = ""
       if statusToBet > statusMaxBetting :
         statusMaxBetting = statusToBet
   
       # Menghitung persentase statusMaxBetting  terhadap sB
-      risk_percentage = (float(formated(statusMaxBetting, "desimal", 8)) / float(formated(dataPlaceBet_user["amount"], "desimal", 8))) * 100
+      risk_percentage = (float(utils.formated(statusMaxBetting, "desimal", 8)) / float(utils.formated(dataPlaceBet_user["amount"], "desimal", 8))) * 100
 
       def placeChance():
-        dataFileJson['Play Game']['Chance to Win']['Chance On'] = str(float(statusCurrentChance))
+        fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = str(float(statusCurrentChance))
         nextbet_counter()
         initChance()
 
-      if dataFileJson['amount counter'] == "true" and onGame['if_lose'] == "0":
+      if fileManager.dataFileJson['amount counter'] == "true" and onGame['if_lose'] == "0":
         bet['rule'] = "under"
         if statusWinLose == "W":
           bet['amount'] = statusCurrentBaseBet
         elif statusCurrentLose > 1: 
-          bet['amount'] = formated(statusToBet, "float", 8)
+          bet['amount'] = utils.formated(statusToBet, "float", 8)
           statusCurrentChance += 3
           placeChance()
         elif float(bet['amount']) / float(dataPlaceBet_user['amount']) > (statusProfitPersen / 10):
@@ -383,58 +383,58 @@ def dice():
           placeChance()
         
       if statusStepStrategy == "00":
-          bgStep = bgPutih
-          txtStep = txtHitam
+          color.bgStep = color.bgPutih
+          color.txtStep = color.txtHitam
       elif statusStepStrategy in {"01", "02", "03"}:
-          bgStep = bgHijau
-          txtStep = txtPutih
+          color.bgStep = color.bgHijau
+          color.txtStep = color.txtPutih
       elif statusStepStrategy in {"04", "05", "06"}:
-          bgStep = bgKuning
-          txtStep = txtHitam
+          color.bgStep = color.bgKuning
+          color.txtStep = color.txtHitam
       elif statusStepStrategy in {"07", "08"} or statusStepStrategy >= "09":
-          bgStep = bgRed
-          txtStep = txtPutih
+          color.bgStep = color.bgRed
+          color.txtStep = color.txtPutih
       else:
-          bgStep = bgBiru
-          txtStep = txtPutih
+          color.bgStep = color.bgBiru
+          color.txtStep = color.txtPutih
     
       # Menentukan level risk berdasarkan persentase
       if 1 <= risk_percentage <= 20:
           statusRiskAlert = "Low"
-          bgRiskAlert = bgHijau
-          txtRiskAlert = txtPutih
+          color.bgRiskAlert = color.bgHijau
+          color.txtRiskAlert = color.txtPutih
       elif 31 <= risk_percentage <= 40:
           statusRiskAlert = "Medium"
-          bgRiskAlert = bgKuning
-          txtRiskAlert = txtHitam
+          color.bgRiskAlert = color.bgKuning
+          color.txtRiskAlert = color.txtHitam
       elif 61 <= risk_percentage <= 60:
           statusRiskAlert = "High"
-          bgRiskAlert = bgRed
-          txtRiskAlert = txtPutih
+          color.bgRiskAlert = color.bgRed
+          color.txtRiskAlert = color.txtPutih
       elif risk_percentage > 60:
           statusRiskAlert = "Very High"
-          bgRiskAlert = bgRed
-          txtRiskAlert = txtPutih
+          color.bgRiskAlert = color.bgRed
+          color.txtRiskAlert = color.txtPutih
       else:
           statusRiskAlert = "No Risk"
-          bgRiskAlert = bgPutih
-          txtRiskAlert = txtHitam
+          color.bgRiskAlert = color.bgPutih
+          color.txtRiskAlert = color.txtHitam
     
-      if float(dataFileJson['Play Game']['Chance to Win']['Chance On']) >= 75: 
-        dataFileJson['Play Game']['Chance to Win']['Chance On'] = "75"
+      if float(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On']) >= 75: 
+        fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = "75"
       
       def csvStdOut():
         # Tentukan nama file CSV dan kolom-kolomnya
         file_name = "data.csv"
-        columns = ["sWL", "sRC", "sM", "sSS", "sTB", "sPC", "sLPP", "sTIME"]
+        columns = ["sWL", "sRC", "sM", "sSS", "sTB", "sPC", "sLPP"]
         
-        # Inisialisasi class csvData
-        csv_manager = csvData(file_name, columns)
+        # Inisialisasi class csvManager
+        csv_manager = csvManager(file_name, columns)
         
         # Tambah data baru (satu baris) ke dalam file
         csv_manager.append_data({
-        "sWL": statusWinLose, "sRC": formated(statusResultChance, "double",2), "sM": formated(statusMultiplier, "double", 2), "sSS": statusStepStrategy,
-        "sTB": formated(statusToBet, "desimal", 8), "sPC": formated(statusTotalProfitCounter, "desimal", 8), "sLPP": formated(statusLastProfitPersen, "persen", 3), "sTIME": formatted_time
+        "sWL": statusWinLose, "sRC": utils.formated(statusResultChance, "double",2), "sM": utils.formated(statusMultiplier, "double", 2), "sSS": statusStepStrategy,
+        "sTB": utils.formated(statusToBet, "desimal", 8), "sPC": utils.formated(statusTotalProfitCounter, "desimal", 8), "sLPP": utils.formated(statusLastProfitPersen, "persen", 3)
         })
         
         # Membaca dan mencetak data dari file CSV
@@ -443,28 +443,28 @@ def dice():
       csvStdOut()
       
       def print_out():
-        gap = colorText("|", bgEnd)
-        sWL = colorText(statusWinLose, bgWinLose)
-        sRC = colorText(formated(statusResultChance, "double",2), bgWinLose, txtPutih)
-        sCCB = colorText(formated(statusCurrentChanceBetting, "double", 2), bgAbuAbu2, txtPutih)
-        sM = colorText(formated(statusMultiplier, "double", 2), bgUngu, txtPutih)
-        sSS = colorText(statusStepStrategy, bgStep, txtStep)
-        sTB = colorText(formated(statusToBet, "desimal", 8), bgWinLose, txtKuning)
+        gap = color.colorText("|", color.bgEnd)
+        sWL = color.colorText(statusWinLose, color.bgWinLose)
+        sRC = color.colorText(utils.formated(statusResultChance, "double",2), color.bgWinLose, color.txtPutih)
+        sCCB = color.colorText(utils.formated(statusCurrentChanceBetting, "double", 2), color.bgAbuAbu2, color.txtPutih)
+        sM = color.colorText(utils.formated(statusMultiplier, "double", 2), color.bgUngu, color.txtPutih)
+        sSS = color.colorText(statusStepStrategy, color.bgStep, color.txtStep)
+        sTB = color.colorText(utils.formated(statusToBet, "desimal", 8), color.bgWinLose, color.txtKuning)
         #sDP (status data profit)
-        sDP = colorText(formated(dataPlaceBet_bet["profit"], "desimal", 8), bgWinLose)
-        sPC = colorText(formated(statusTotalProfitCounter, "desimal", 8), bgWinLose)
-        sPP = colorText(formated(statusProfitPersen, "persen", 3), bgWinLose, txtKuning)
-        sLPP = colorText(formated(statusLastProfitPersen, "persen", 3), bgPutih, txtKuning)
+        sDP = color.colorText(utils.formated(dataPlaceBet_bet["profit"], "desimal", 8), color.bgWinLose)
+        sPC = color.colorText(utils.formated(statusTotalProfitCounter, "desimal", 8), color.bgWinLose)
+        sPP = color.colorText(utils.formated(statusProfitPersen, "persen", 3), color.bgWinLose, color.txtKuning)
+        sLPP = color.colorText(utils.formated(statusLastProfitPersen, "persen", 3), color.bgPutih, color.txtKuning)
         print(f'{gap}{sWL}{gap}{sRC}{gap}{sM}{gap}{sSS}{gap}{sTB}{gap}{sDP}{gap}{sPC}{gap}{sPP}{gap}')
         
-        sTWL = colorText(f'T:{statusTotalWin}/{statusTotalLose}', bgUngu)
-        sHWL = colorText(f'H:{statusHigherWin}/{statusHigherLose}', bgUngu)
-        sCWL = colorText(f'C:{statusCurrentWin}/{statusCurrentLose}', bgUngu)
-        sCL = colorText(f'Lck:{formated(statusCurrentLuck, "persen", 0)}', bgWinLose)
-        sMB = colorText(f'M:{formated(statusMaxBetting, "desimal", 8)}', bgWinLose)
-        sRA = colorText(statusRiskAlert, bgRiskAlert, txtRiskAlert)
-        sB = colorText(f'B:{formated(dataPlaceBet_user["amount"], "desimal", 8)}', bgWinLose)
-        sTIME = colorText(formatted_time, bgPutih, txtHitam)
+        sTWL = color.colorText(f'T:{statusTotalWin}/{statusTotalLose}', color.bgUngu)
+        sHWL = color.colorText(f'H:{statusHigherWin}/{statusHigherLose}', color.bgUngu)
+        sCWL = color.colorText(f'C:{statusCurrentWin}/{statusCurrentLose}', color.bgUngu)
+        sCL = color.colorText(f'Lck:{utils.formated(statusCurrentLuck, "persen", 0)}', color.bgWinLose)
+        sMB = color.colorText(f'M:{utils.formated(statusMaxBetting, "desimal", 8)}', color.bgWinLose)
+        sRA = color.colorText(statusRiskAlert, color.bgRiskAlert, color.txtRiskAlert)
+        sB = color.colorText(f'B:{utils.formated(dataPlaceBet_user["amount"], "desimal", 8)}', color.bgWinLose)
+        sTIME = color.colorText(formatted_time, color.bgPutih, color.txtHitam)
         sys.stdout.write(f'_\r {gap}{sRA}{gap}{sB}{gap}{sCL}{gap}{sCWL}{gap}{sHWL}{gap}{sTWL}{gap}\r')
       print_out()
 
@@ -494,29 +494,29 @@ def dice():
           print(f'\n Error {e}, Sedang Mencoba Kembali')
           conerror()
     except requests.exceptions.Timeout as e:
-      textShow(e)
+      utils.textShow(e)
       conerror()
     except (KeyError, NameError, ValueError, TypeError, IndexError, FileNotFoundError, AttributeError, IndentationError) as e:
       if statusRiskAlert == "low":
-        textShow(e)
+        utils.textShow(e)
         conerror()
       else:
-        textShow(e)
+        utils.textShow(e)
         conerror()
-        sysExit()
+        utils.sysExit()
     except (ConnectionAbortedError, requests.exceptions.ConnectionError) as e:
       print(f'\nTidak dapat terhubung, periksa koneksi internet anda error {e}')
       conerror()
     except ImportError as e:
-      textShow(e)
-      modulInstaller()
+      utils.textShow(e)
+      moduleInstaller()
       conerror()
     except (KeyboardInterrupt, IOError) as e:
       stop = input(f'\nProgram terhenti {e}, enter untuk keluar ').lower()
       if stop == "":
-        sysExit()
+        utils.sysExit()
     except Exception as e:
-      textShow(e)
+      utils.textShow(e)
       if statusRiskAlert == "low":
         conerror()
       else:
@@ -524,13 +524,13 @@ def dice():
         if ecp == "y":
           dice()
         else:
-          textShow(e)
+          utils.textShow(e)
           conerror()
-          sysExit()
+          utils.sysExit()
       #print(json.dumps(bet, indent=2))
       #print(json.dumps(dataPlaceBet, indent=2))
       #print(f'Successful request to {response_4.status_code} {urls[4]}')
 
 while True:
-  mainFunction.cache_init()
+  utils.cache_init()
   dice()
