@@ -249,9 +249,11 @@ def dice():
       def process_place_bet(bet):
           response_4 = requests.post(urls[4], headers=headers, json=bet, timeout=5)
           dataPlaceBet = response_4.json()
-          return dataPlaceBet['bet'], dataPlaceBet['userBalance']
+          dataPlaceBet_bet = dataPlaceBet['bet']
+          dataPlaceBet_user = dataPlaceBet['userBalance']
+          return dataPlaceBet, dataPlaceBet_bet, dataPlaceBet_user
       
-      dataPlaceBet_bet, dataPlaceBet_user = process_place_bet(bet)
+      dataPlaceBet, dataPlaceBet_bet, dataPlaceBet_user = process_place_bet(bet)
 
       if fileManager.dataFileJson['Play Game']['Chance to Win']['Last Chance Game'] == "true": 
         if bet['rule'] == "over":
