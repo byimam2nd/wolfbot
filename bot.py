@@ -35,46 +35,49 @@ def initConnection():
   utils.clearSystem()
   fileManager.get_json('data.json', fileManager.dataFileJson)
   get_access()
-
 initConnection()
 
 #Daftar Program GET & POST Server
 accessCounter = 0
-print('Mencoba akses masuk')
-while True:
-  if accessCounter > (len(dnsManager.dnsList)*10):
-    utils.clearSystem()
-    print('Cek kestabilan koneksi anda')
-    initConnection()
-    accessCounter = 0
-  try:
-    utils.http_A()
-    print('\n---------Connection Checker---------')
-    responses = []
-    for i, url in enumerate(urls[:3]):
-      response = requests.get(url, headers=headers)
-      responses.append(response)
-      print(f'Server {i+1} status code {response.status_code}')
-    print('------------------------------------\n')
-    print('Akses masuk berhasil, memulai program')
-    accessCounter = 0
-    break
-  except Exception as e:
-    accessCounter += 1
-    utils.clearSystem()
-    print(f'Akses di tolak error : {e}, mencoba menghubungkan kembali.')
-    dnsManager.dnsIndex += 1
-    if dnsManager.dnsIndex >= len(dnsManager.dnsList):
-        dnsManager.dnsIndex = 0
-    initConnection()
+responses = []
+def accessEnter():
+    global accessCounter
+    print('Mencoba akses masuk')
+    while True:
+      if accessCounter > len(dnsManager.dnsList):
+        utils.clearSystem()
+        print('Cek kestabilan koneksi anda')
+        initConnection()
+        accessCounter = 0
+      try:
+        print('\n---------Connection Checker---------')
+        for i, url in enumerate(urls[:3]):
+          response = requests.get(url, headers=headers)
+          responses.append(response)
+          print(f'Server {i+1} status code {response.status_code}')
+        print('Memulai akses masuk')
+        accessCounter = 0
+        break
+      except Exception as e:
+        accessCounter += 1
+        utils.clearSystem()
+        print(f'Akses di tolak error : {e}, mencoba menghubungkan kembali.')
+        dnsManager.dnsIndex += 1
+        if dnsManager.dnsIndex >= len(dnsManager.dnsList):
+            dnsManager.dnsIndex = 0
+        initConnection()
+accessEnter()
 
-dataBalance = responses[0].json()
-dataBalance_balances = dataBalance['balances']
-dataBalance_base = []
-for balance in dataBalance_balances:
-    currency = balance['currency']
-    amount = balance['amount']
-    dataBalance_base.append([currency, amount])
+def response_0():
+    global dataBalance, dataBalance_balances, dataBalance_base
+    dataBalance = responses[0].json()
+    dataBalance_balances = dataBalance['balances']
+    dataBalance_base = []
+    for balance in dataBalance_balances:
+        currency = balance['currency']
+        amount = balance['amount']
+        dataBalance_base.append([currency, amount])
+response_0()
 
 currency = ""
 def mata_uang():
@@ -86,7 +89,7 @@ def mata_uang():
   for i, (name, value) in enumerate(dataBalance_base, start=1):
       print(f"{i:>{index_width}}.  {name:<{name_width}} : {value}")
   currency = "trx"#input("Masukkan nama mata uang: ").lower()
-  time.sleep(3)
+  time.sleep(2)
   utils.clearSystem()
 mata_uang()
 
@@ -149,7 +152,6 @@ def user_stats():
 user_stats()
 start_time = datetime.datetime.now()
 refresh_seed()
-utils.cache_init()
 
 def dice():
   data_bet = '''{
@@ -534,5 +536,4 @@ def dice():
       #print(f'Successful request to {response_4.status_code} {urls[4]}')
 
 while True:
-  utils.cache_init()
   dice()
