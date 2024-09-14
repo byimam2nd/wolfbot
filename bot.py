@@ -1,12 +1,9 @@
 try:
   import installer
-  import color
-  import mainFunction
   import time
-  import telegram
   import random
+  import asyncio
   import sys
-  import csv
   import datetime
   import json
   import requests
@@ -15,7 +12,7 @@ except ModuleNotFoundError:
   installer.moduleInstaller().installModules()
 
 from installer import moduleInstaller
-from mainFunction import urls, utils, dnsManager, fileManager, repoUpdater, csvManager
+from mainFunction import urls, utils, dnsManager, fileManager, csvManager, interactAPI, telegramBot
 from color import color
 
 # mengambil nilai access_token dan masuk
@@ -79,19 +76,8 @@ def response_0():
         dataBalance_base.append([currency, amount])
 response_0()
 
-currency = ""
-def mata_uang():
-  global currency
-  print('\n')
-  print("----------Crypto Currency----------")
-  index_width = len(str(len(dataBalance_base)))
-  name_width = max(len(name) for name, _ in dataBalance_base)
-  for i, (name, value) in enumerate(dataBalance_base, start=1):
-      print(f"{i:>{index_width}}.  {name:<{name_width}} : {value}")
-  currency = "trx"#input("Masukkan nama mata uang: ").lower()
-  time.sleep(2)
-  utils.clearSystem()
-mata_uang()
+interAPI = interactAPI()
+currency = interAPI.mata_uang(dataBalance_base, "trx")
 
 dataBets = responses[1].json()
 dataBets_base = []
@@ -472,19 +458,12 @@ def dice():
         sys.stdout.write(f'_\r {gap}{sRA}{gap}{sB}{gap}{sCL}{gap}{sCWL}{gap}{sHWL}{gap}{sTWL}{gap}\r')
       print_out()
 
-      pesan = f'Balance: {float(dataPlaceBet_user["amount"]):.8f}\nChance in: {float(statusCurrentChanceBetting):0>5.2f}\nChance Result: {float(statusResultChance):0>5.2f}\nBet on Win: {float(statusToBet):.8f}\nProfit: {float(dataPlaceBet_bet["profit"]):.8f}\nProfit %(on/target): {float(statusProfitPersen):0>3.3f}/{float(statusLastProfitPersen):0>3.3f}%\nHighest Bet: {float(statusMaxBetting):.8f}\nTotal Win/Lose: {statusTotalWin}/{statusTotalLose}\nHigher Win/Lose: {statusHigherWin}/{statusHigherLose}\nLucky: {float(statusCurrentLuck):.2f}%\nTime in: {formatted_time}'
-
-      bot_token = ""
-      chat_id = 832658254
-      async def init_bot_tel():
-        bot = telegram.Bot(token=bot_token)
-        await bot.sendMessage(chat_id=chat_id, text=pesan)
       if statusCurrentLose >= 7: 
         telebotLose = 1
       if telebotLose == 1 and statusCurrentWin == 1 and statusCurrentLose > 6: 
         telebotWin = 1
       if telebotLose == 1 and telebotWin == 1:
-        asyncio.run(init_bot_tel())
+        asyncio.run(telegramBot.init_bot_tel())
         telebotWin = 0
         telebotLose = 0
 
