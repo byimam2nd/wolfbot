@@ -12,132 +12,29 @@ except ModuleNotFoundError:
   installer.moduleInstaller().installModules()
 
 from installer import moduleInstaller
-from mainFunction import urls, utils, dnsManager, fileManager, csvManager, interactAPI, telegramBot
+from mainFunction import urls, utils, fileManager, csvManager, InitConnection, interactAPI
 from color import color
 
-# mengambil nilai access_token dan masuk
-headers = 0
-def get_access():
-  global headers
-  try:
-    access_token = fileManager.dataFileJson['Account']['Access Token']
-    headers = {'Authorization': f'Bearer {access_token}'}
-    print("Authentication berhasil")
-    return access_token, headers
-  except KeyError:
-    print("Cek kembali access token anda")
-    utils.sysExit()
-
-def initConnection(): 
-  utils.clearSystem()
-  fileManager.get_json('data.json', fileManager.dataFileJson)
-  get_access()
-initConnection()
-
-#Daftar Program GET & POST Server
-accessCounter = 0
-responses = []
-def accessEnter():
-    global accessCounter
-    print('Mencoba akses masuk')
-    while True:
-      if accessCounter > len(dnsManager.dnsList):
-        utils.clearSystem()
-        print('Cek kestabilan koneksi anda')
-        initConnection()
-        accessCounter = 0
-      try:
-        print('\n---------Connection Checker---------')
-        for i, url in enumerate(urls[:3]):
-          response = requests.get(url, headers=headers)
-          responses.append(response)
-          print(f'Server {i+1} status code {response.status_code}')
-        print('Memulai akses masuk')
-        accessCounter = 0
-        break
-      except Exception as e:
-        accessCounter += 1
-        utils.clearSystem()
-        print(f'Akses di tolak error : {e}, mencoba menghubungkan kembali.')
-        dnsManager.dnsIndex += 1
-        if dnsManager.dnsIndex >= len(dnsManager.dnsList):
-            dnsManager.dnsIndex = 0
-        initConnection()
-accessEnter()
-
-def response_0():
-    global dataBalance, dataBalance_balances, dataBalance_base
-    dataBalance = responses[0].json()
-    dataBalance_balances = dataBalance['balances']
-    dataBalance_base = []
-    for balance in dataBalance_balances:
-        currency = balance['currency']
-        amount = balance['amount']
-        dataBalance_base.append([currency, amount])
-response_0()
-
-interAPI = interactAPI()
-currency = interAPI.mata_uang(dataBalance_base, "trx")
-
-dataBets = responses[1].json()
-dataBets_base = []
-if currency in dataBets['dice']:
-    stats = dataBets['dice'][currency]
-    for bal in dataBalance_balances:
-        if bal['currency'] == currency.lower():
-            dataBets_bal_stat = bal['amount']
-            dataBets_total_bets = stats['total_bets']
-            dataBets_win = stats['win']
-            dataBets_lose = stats['lose']
-            dataBets_profit = stats['profit']
-            dataBets_wager_crpt = stats['waggered']
-            dataBets_wager_usd = stats['waggered_usd']
-            dataBets_base.append([dataBets_bal_stat, dataBets_total_bets, dataBets_win, dataBets_lose, dataBets_profit, dataBets_wager_crpt, dataBets_wager_usd])
-else:
-    print(f'Mata Uang {currency} tidak di temukan')
-
-dataStatsRace = responses[2].json()
-race_data = dataStatsRace['race']
-user_data = race_data['user']
-dataStatsRace_user = user_data['login']
-dataStatsRace_vip = user_data['vip_level']
-dataStatsRace_rank = race_data['rank']
-dataStatsRace_join = user_data['joined']
-data_seed = ""
-response_3 = None
-
-def refresh_seed():
-    global data_seed, response_3
-    response_3 = requests.post(urls[3], headers=headers)
-    data_seed = response_3.json().get('seed', '')
-
-col_width_p = 15
-col_width_v = 30
-
-#print status yang berada di atas layar
-def user_stats():
-    print("\n----------Stats Info----------")
-    def print_info(label, value):
-        print(f'{label: <{col_width_p}}: {value}')
-    print_info('User', dataStatsRace_user)
-    print_info(f'Balance {currency}', dataBets_bal_stat)
-    print_info('Currency', currency.upper())
-    print_info('Total Bets', dataBets_total_bets)
-    print_info('Win', dataBets_win)
-    print_info('Lose', dataBets_lose)
-    print_info('Profit', dataBets_profit)
-    print_info(f'Waggered {currency}', dataBets_wager_crpt)
-    print_info('Waggered usd', dataBets_wager_usd)
-    print_info('Rank', dataStatsRace_rank)
-    print_info('VIP', dataStatsRace_vip)
-    print_info('Join', dataStatsRace_join)
-    print('\n')
-    time.sleep(3)
-
-  
-user_stats()
+# Waktu memulai aplikasi pertama kali
 start_time = datetime.datetime.now()
-refresh_seed()
+
+#Instance
+interAPI = interactAPI()
+interAPI.startInit()
+interAPI.AccessInit()
+interAPI.response_0()
+interAPI.currency_collector()
+interAPI.response_1()
+interAPI.response_2()
+interAPI.response_3()
+interAPI.status_info()
+
+#Objek
+headers = interAPI.headers
+responses = interAPI.responses
+currency = interAPI.currency
+dataBets_bal_stat = interAPI.dataBets_bal_stat
+
 
 def dice():
   data_bet = '''{
@@ -165,8 +62,6 @@ def dice():
       return bet, onGame, dataPlaceBet_bal_reset
   bet, onGame, dataPlaceBet_bal_reset = process_bet_data(data_bet)
 
-  telebotWin = 0
-  telebotLose = 0
   statusWinLose = "W"
   statusCurrentWin = 0
   statusCurrentLose = 0
@@ -188,11 +83,11 @@ def dice():
   statusBaseBalance = float(dataBets_bal_stat)
 
   while True:
-    if (statusTotalLose + statusTotalWin) > 50 and utils.every(50, (statusTotalLose + statusTotalWin)):
-      refresh_seed()
+    if utils.every(25, (statusTotalLose + statusTotalWin)):
+      interAPI.response_3()
     
     if statusHigherLose >= 10 and statusRiskAlert == "Medium" and statusWinLose == "W":
-      refresh_seed()
+      interAPI.response_3()
       utils.sysExit()
     
     count_time = (datetime.datetime.now() - start_time).total_seconds()
@@ -428,7 +323,7 @@ def dice():
         })
         
         # Membaca dan mencetak data dari file CSV
-        data = csv_manager.read_data()
+        #data = csv_manager.read_data()
         #print(data)
       csvStdOut()
       
@@ -458,21 +353,16 @@ def dice():
         sys.stdout.write(f'_\r {gap}{sRA}{gap}{sB}{gap}{sCL}{gap}{sCWL}{gap}{sHWL}{gap}{sTWL}{gap}\r')
       print_out()
 
-      if statusCurrentLose >= 7: 
-        telebotLose = 1
-      if telebotLose == 1 and statusCurrentWin == 1 and statusCurrentLose > 6: 
-        telebotWin = 1
-      if telebotLose == 1 and telebotWin == 1:
-        asyncio.run(telegramBot.init_bot_tel())
-        telebotWin = 0
-        telebotLose = 0
-
       def conerror():
         time.sleep(1)
         print('\nKoneksi terputus, memuat ulang koneksi')
         try:
-          dice()
-          conerror()
+          try:
+            print('Jalankan kembali')
+            dice()
+            conerror()
+          except Exception as e:
+            print(f'\n Error {e}, Sedang Mencoba Kembali')
         except Exception as e:
           print(f'\n Error {e}, Sedang Mencoba Kembali')
           conerror()
@@ -510,9 +400,5 @@ def dice():
           utils.textShow(e)
           conerror()
           utils.sysExit()
-      #print(json.dumps(bet, indent=2))
-      #print(json.dumps(dataPlaceBet, indent=2))
-      #print(f'Successful request to {response_4.status_code} {urls[4]}')
-
 while True:
   dice()
