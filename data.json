@@ -1,9 +1,7 @@
 {
-  "Account" : {
-    "Access Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI1IiwianRpIjoiNGRjMDA2ZWY2NmYwNDYyM2FkYmQ5MzhjMjdiOGM1MzE2NDhmMDI5NDU5NDljMWNjMGQ5NDIxMDM4MjhjYWM3ZmZhNjczNmYzZTY4NmNhZGQiLCJpYXQiOjE3MjU1NDU3MjguODc5MDQ4LCJuYmYiOjE3MjU1NDU3MjguODc5MDUyLCJleHAiOjE3NTcwODE3MjguODczNTU4LCJzdWIiOiI0MzAzNzIiLCJzY29wZXMiOltdfQ.YDuV39hyXVNDpCYskAwQsLfGbDkHECh6JtQbnvmUF0ThiwHn7jSVq-7AFu7kMmfpDMuohpbTZsF9HCVMy4b6NuGG3lZzD1JzRNhvTcirHUAv6mzPgX3xS2TERHyV2Gu2i-jQ4hc-83-sXRn5zYuo1JP__ecqxt_GlzpLk_bMNslCZco6vntUWRn04EtsuIBELa0XnKz5LWIJicoJSLdrz4Po8sBCVzDuXzcFr3W1NHF6gCrCmnhthN4Hn0qExEeWfkv6SEsJgn1ou4cGutVpJJDRUboRLpQ1idUzYRUp9Lb0JPtlIawLgVU5zSCYiD6R1HAT4a0DZDzwa62FYKQRnOlWh-hKoZp17YcscFB5-2YYZz_TGfcrdwGYhYDMweX5xsQfK3Dha4__VM4jGlqNMjyVpJSTkOu1hWMHoWSs2HEcyoJ9bNIN_EkCxeU2FmEWyHVC8HX_G0894M9h7TqYMdzIKvXIXhhDzdAr0Nr9wMvEkqjAhhsMuAi4CYoMku_rALm31RHAxatHYBhebnovnmHD6JJ_YI72TvQhrABMZzBF57-8FSVmPiK9dL7xMHbd-dwb3Zg51GQo05hyJxodThWowct7iRgqk4BMrfzFIRav1BcLdyJC9fhooaXOpuYVFHcHNwY5DRE2qv9_qRfrsWMlXnqUbQG3I-1vpLGWVGU"
-  },
   "Play Game" : {
-    "Amount": "0.0000001",
+    "Currency" : "usdt",
+    "Amount": "0.000001",
     "Divider": "100000",
     "Chance to Win" : {
         "Chance On" : "50",
@@ -26,5 +24,16 @@
     "if_win_reset" : "true"
   },
   "amount counter" : "true",
-  "basebet counter" : "true"
+  "basebet counter" : "true",
+  "bet": {
+      "currency": "doge",
+      "game": "dice",
+      "amount": "0.0000001",
+      "rule": "under",
+      "multiplier": "1.98",
+      "bet_value": "50"
+    },
+  "Account" : {
+    "Access Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI1IiwianRpIjoiNGRjMDA2ZWY2NmYwNDYyM2FkYmQ5MzhjMjdiOGM1MzE2NDhmMDI5NDU5NDljMWNjMGQ5NDIxMDM4MjhjYWM3ZmZhNjczNmYzZTY4NmNhZGQiLCJpYXQiOjE3MjU1NDU3MjguODc5MDQ4LCJuYmYiOjE3MjU1NDU3MjguODc5MDUyLCJleHAiOjE3NTcwODE3MjguODczNTU4LCJzdWIiOiI0MzAzNzIiLCJzY29wZXMiOltdfQ.YDuV39hyXVNDpCYskAwQsLfGbDkHECh6JtQbnvmUF0ThiwHn7jSVq-7AFu7kMmfpDMuohpbTZsF9HCVMy4b6NuGG3lZzD1JzRNhvTcirHUAv6mzPgX3xS2TERHyV2Gu2i-jQ4hc-83-sXRn5zYuo1JP__ecqxt_GlzpLk_bMNslCZco6vntUWRn04EtsuIBELa0XnKz5LWIJicoJSLdrz4Po8sBCVzDuXzcFr3W1NHF6gCrCmnhthN4Hn0qExEeWfkv6SEsJgn1ou4cGutVpJJDRUboRLpQ1idUzYRUp9Lb0JPtlIawLgVU5zSCYiD6R1HAT4a0DZDzwa62FYKQRnOlWh-hKoZp17YcscFB5-2YYZz_TGfcrdwGYhYDMweX5xsQfK3Dha4__VM4jGlqNMjyVpJSTkOu1hWMHoWSs2HEcyoJ9bNIN_EkCxeU2FmEWyHVC8HX_G0894M9h7TqYMdzIKvXIXhhDzdAr0Nr9wMvEkqjAhhsMuAi4CYoMku_rALm31RHAxatHYBhebnovnmHD6JJ_YI72TvQhrABMZzBF57-8FSVmPiK9dL7xMHbd-dwb3Zg51GQo05hyJxodThWowct7iRgqk4BMrfzFIRav1BcLdyJC9fhooaXOpuYVFHcHNwY5DRE2qv9_qRfrsWMlXnqUbQG3I-1vpLGWVGU"
+  }
 }
