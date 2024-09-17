@@ -15,38 +15,39 @@ from installer import moduleInstaller
 from mainFunction import urls, utils, fileManager, csvManager, InitConnection, interactAPI, timer
 from color import color
 
-class play_dice():
+class playDice():
   def __init__(self, currency, headers):
     #Atribute fungsi utilities
-    self.formatted_time = {}
+    self.formattedTime = {}
     
     #Atribute fungsi Proccess Bet data
     self.currency = currency
     self.bet = {}
     self.onGame = {}
-    self.dataPlaceBet_bal_reset = {}
+    self.dataPlaceBetBalanceReset = {}
     
     #Atribute fungsi setChance
-    self.ch_on = {}
-    self.ch_rand = {}
-    self.ch_rand_mul = {}
+    self.setChanceOn = {}
+    self.setChanceRandom = {}
+    self.setChanceMultiRandom = {}
     
     #Atribute fungsi Process Bet Data
     self.headers = headers
-    self.dataPlaceBet_bet = {}
-    self.dataPlaceBet_user = {}
+    self.dataPlaceBet = {}
+    self.dataPlaceSetBet = {}
+    self.dataPlaceSetBetUser = {}
     
     #Atribute fungsi initWinLose
-    self.lose_data = []
+    self.loseData = []
 
     #Atribute fungsi nextbet_counter
-    self.b_counter = {}
-    self.entr = {}
+    self.balanceCounter = {}
+    self.EtrCounter = {}
     self.statusMultiplier = {}
     self.statusToBet = {}
 
     #Atribute fungis bettingBalanceCounter
-    self.risk_percentage = 0
+    self.riskPercentage = 0
     
     #Atribute General
     self.statusWinLose = "W"
@@ -57,7 +58,7 @@ class play_dice():
     self.statusTotalLuck = 60
     self.statusCurrentLuck = self.statusTotalLuck
     self.statusCurrentBaseBet = 0
-    self.statusBaseBalance = float(interAPI.dataBets_bal_stat)
+    self.statusBaseBalance = float(interAPI.dataBetsBalanceStat)
     self.statusCurrentLose = 0
     self.statusCurrentWin = 0
     self.statusHigherWin = 0
@@ -73,79 +74,79 @@ class play_dice():
     
   def utilities(self):
       # Instance timer
-      timer.time_counter()
+      timer.timeCounter()
       # Objek timer
-      self.formatted_time = timer.formatted_time
+      self.formattedTime = timer.formattedTime
       
       if utils.every(25, (self.statusTotalLose + self.statusTotalWin)):
-        interAPI.response_3()
+        interAPI.responseRefreshSeed()
       
       if self.statusHigherLose >= 10 and self.statusRiskAlert == "Medium" and self.statusWinLose == "W":
-        interAPI.response_3()
+        interAPI.responseRefreshSeed()
         utils.sysExit()
         
-  def process_bet_data(self):
+  def proccessBetData(self):
       self.bet = fileManager.dataFileJson['bet']  
       # Main data proses post
       self.bet.update({'currency': self.currency,
           'amount': fileManager.dataFileJson['Play Game']['Amount']})
   
       self.onGame = fileManager.dataFileJson['onGame']
-      self.dataPlaceBet_bal_reset = self.bet['amount']
+      self.dataPlaceBetBalanceReset = self.bet['amount']
   
   def setChance(self):
-      self.ch_on = str("{:0.4f}".format(99/float(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'])))
-      self.ch_rand = random.randrange(int(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Min']), int(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Max']),1)
-      self.ch_rand_mul = str("{:0.4f}".format(99/self.ch_rand))
+      self.setChanceOn = str("{:0.4f}".format(99/float(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'])))
+      self.setChanceRandom = random.randrange(int(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Min']), int(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Max']),1)
+      self.setChanceMultiRandom = str("{:0.4f}".format(99/self.setChanceRandom))
   
   def initChance(self):
-      chance_on = fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On']
-      chance_random = fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Random']
+      initChanceOn = fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On']
+      initChanceRandom = fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Random']
       
-      if chance_on != "0" and chance_random == "false":
-          self.bet['multiplier'] = self.ch_on
-          self.bet['bet_value'] = str("{:0.2f}".format(99.99 - float(chance_on)) if self.bet['rule'] == "over" else "{:0.2f}".format(float(chance_on)))
+      if initChanceOn != "0" and initChanceRandom == "false":
+          self.bet['multiplier'] = self.setChanceOn
+          self.bet['bet_value'] = str("{:0.2f}".format(99.99 - float(initChanceOn)) if self.bet['rule'] == "over" else "{:0.2f}".format(float(initChanceOn)))
       
-      elif chance_random == "true":
-          self.bet['multiplier'] = self.ch_rand_mul
-          self.bet['bet_value'] = str("{:0.2f}".format(99.99 - float(self.ch_rand)) if self.bet['rule'] == "over" else "{:0.2f}".format(float(self.ch_rand)))
+      elif initChanceRandom == "true":
+          self.bet['multiplier'] = self.setChanceMultiRandom
+          self.bet['bet_value'] = str("{:0.2f}".format(99.99 - float(self.setChanceRandom)) if self.bet['rule'] == "over" else "{:0.2f}".format(float(self.setChanceRandom)))
   
       if self.onGame['if_lose_reset'] == "true" and self.statusWinLose == "L":
-          self.bet['amount'] = self.dataPlaceBet_bal_reset
+          self.bet['amount'] = self.dataPlaceBetBalanceReset
       elif self.onGame['if_win_reset'] == "true" and self.statusWinLose == "W":
-          self.bet['amount'] = self.dataPlaceBet_bal_reset
+          self.bet['amount'] = self.dataPlaceBetBalanceReset
           
-  def basebet_counter(self):
+  def basebetCounter(self):
       if fileManager.dataFileJson['basebet counter'] == "true":
         self.statusCurrentBaseBet = self.statusBaseBalance/float(fileManager.dataFileJson['Play Game']['Divider'])
-        if self.statusCurrentLuck > self.statusTotalLuck and (float(self.bet['amount'])/float(self.dataPlaceBet_user['amount'])) < (self.statusTotalLuck/2/float(fileManager.dataFileJson['Play Game']['Divider'])): 
+        if self.statusCurrentLuck > self.statusTotalLuck and (float(self.bet['amount'])/float(self.dataPlaceSetBetUser['amount'])) < (self.statusTotalLuck/2/float(fileManager.dataFileJson['Play Game']['Divider'])): 
           self.statusCurrentBaseBet /= self.statusTotalLuck
         else:
           self.statusCurrentBaseBet /= (self.statusTotalLuck/(self.statusCurrentLose+1))
         fileManager.dataFileJson['Play Game']['Amount'] = self.statusCurrentBaseBet
         
-  def process_place_bet(self):
+  def proccessPlaceBet(self):
       response_4 = requests.post(urls[4], headers=self.headers, json=self.bet, timeout=5)
       dataPlaceBet = response_4.json()
-      self.dataPlaceBet_bet = dataPlaceBet['bet']
-      self.dataPlaceBet_user = dataPlaceBet['userBalance']
+      self.dataPlaceSetBet = dataPlaceBet['bet']
+      self.dataPlaceSetBetUser = dataPlaceBet['userBalance']
       
-  def process_chance_counter(self):
+  def proccessChanceCounter(self):
       if fileManager.dataFileJson['Play Game']['Chance to Win']['Last Chance Game'] == "true": 
         if self.bet['rule'] == "over":
-          if 99.99-float(self.dataPlaceBet_bet['result_value']) > 98.00 : 
+          if 99.99-float(self.dataPlaceSetBet['result_value']) > 98.00 : 
             fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = 99.99 - 98.00
           else:
-            fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = 99.99-float(self.dataPlaceBet_bet['result_value'])
+            fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = 99.99-float(self.dataPlaceSetBet['result_value'])
         if self.bet['rule'] == "under":
-          if float(self.dataPlaceBet_bet['result_value']) > 98.00 : 
+          if float(self.dataPlaceSetBet['result_value']) > 98.00 : 
             fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = 98.00
           else:
-            fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = self.dataPlaceBet_bet['result_value']
+            fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = self.dataPlaceSetBet['result_value']
             
   def initWinLose(self):
-      if self.dataPlaceBet_bet['state'] == "win":
-        self.lose_data.clear()
+      if self.dataPlaceSetBet['state'] == "win":
+        self.loseData.clear()
         color.bgWinLose = color.bgHijau
         self.statusWinLose = "W" 
         self.statusTotalWin += 1
@@ -154,7 +155,7 @@ class play_dice():
         if self.statusTotalWin > self.statusHigherWin:
           self.statusHigherWin = self.statusTotalWin
       else: 
-        self.lose_data.append(abs(float(self.dataPlaceBet_bet['profit'])))
+        self.loseData.append(abs(float(self.dataPlaceSetBet['profit'])))
         color.bgWinLose = color.bgRed
         self.statusWinLose = "L"
         self.statusCurrentLose += 1
@@ -162,50 +163,50 @@ class play_dice():
         self.statusTotalWin = 0
         if self.statusCurrentLose > self.statusHigherLose:
           self.statusHigherLose = self.statusCurrentLose
-      sum_lose_data = sum(self.lose_data)
-      if sum_lose_data > self.statusMaxLosing:
-        self.statusMaxLosing = sum_lose_data
+      sumLoseData = sum(self.loseData)
+      if sumLoseData > self.statusMaxLosing:
+        self.statusMaxLosing = sumLoseData
 
       if self.onGame['if_lose'] != "0":
-        self.bet['amount'] = str(float(self.dataPlaceBet_bet['amount']) * float(self.onGame['if_lose']))
+        self.bet['amount'] = str(float(self.dataPlaceSetBet['amount']) * float(self.onGame['if_lose']))
       if self.onGame['if_win'] != "0":
-        self.bet['amount'] = str(float(self.dataPlaceBet_bet['amount']) * float(self.onGame['if_win']))
+        self.bet['amount'] = str(float(self.dataPlaceSetBet['amount']) * float(self.onGame['if_win']))
 
       if self.statusWinLose == 'W':
-        self.statusTotalProfitCounter += abs(float(self.dataPlaceBet_bet["profit"]))
+        self.statusTotalProfitCounter += abs(float(self.dataPlaceSetBet["profit"]))
       elif self.statusWinLose == 'L':
-        self.statusTotalProfitCounter -= abs(float(self.dataPlaceBet_bet["profit"]))
+        self.statusTotalProfitCounter -= abs(float(self.dataPlaceSetBet["profit"]))
 
-      self.statusProfitPersen = abs(self.statusTotalProfitCounter/float(interAPI.dataBets_bal_stat)*100)
+      self.statusProfitPersen = abs(self.statusTotalProfitCounter/float(interAPI.dataBetsBalanceStat)*100)
       if self.statusProfitPersen > self.statusLastProfitPersen and self.statusWinLose == "W":
         self.statusLastProfitPersen = self.statusProfitPersen
 
-  def rule_bet_chance(self):
+  def ruleBetChance(self):
       if self.bet['rule'] == "over":
         self.statusCurrentChanceBetting = 99.99-float(self.bet['bet_value'])
       else: 
         self.statusCurrentChanceBetting = self.bet['bet_value']
-      if self.dataPlaceBet_bet['rule'] == "over":
-        self.statusResultChance = 99.99-float(self.dataPlaceBet_bet['result_value'])
+      if self.dataPlaceSetBet['rule'] == "over":
+        self.statusResultChance = 99.99-float(self.dataPlaceSetBet['result_value'])
       else: 
-        self.statusResultChance = self.dataPlaceBet_bet['result_value']
+        self.statusResultChance = self.dataPlaceSetBet['result_value']
     
-  def nextbet_counter(self):
-      self.b_counter = 1/(float(self.bet['multiplier'])-1)+1
-      self.entr = ((self.statusCurrentLose)/100)
-      self.statusMultiplier = self.b_counter+self.entr
-      self.statusToBet = float(self.dataPlaceBet_bet['amount'])*self.statusMultiplier
+  def nextbetCounter(self):
+      self.balanceCounter = 1/(float(self.bet['multiplier'])-1)+1
+      self.EtrCounter = ((self.statusCurrentLose)/100)
+      self.statusMultiplier = self.balanceCounter+self.EtrCounter
+      self.statusToBet = float(self.dataPlaceSetBet['amount'])*self.statusMultiplier
         
   def bettingBalanceCounter(self):
       if self.statusToBet > self.statusMaxBetting :
         self.statusMaxBetting = self.statusToBet
   
       # Menghitung persentase self.statusMaxBetting  terhadap statusBalance
-      self.risk_percentage = (float(utils.formated(self.statusMaxBetting, "desimal", 8)) / float(utils.formated(self.dataPlaceBet_user["amount"], "desimal", 8))) * 100
+      self.riskPercentage = (float(utils.formated(self.statusMaxBetting, "desimal", 8)) / float(utils.formated(self.dataPlaceSetBetUser["amount"], "desimal", 8))) * 100
 
   def placeChance(self):
       fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = str(float(self.statusCurrentChance))
-      playGame.nextbet_counter()
+      playGame.nextbetCounter()
       playGame.initChance()
 
   def IsStrategy(self):
@@ -217,19 +218,19 @@ class play_dice():
           self.bet['amount'] = utils.formated(self.statusToBet, "float", 8)
           self.statusCurrentChance += 3
           playGame.placeChance()
-        elif float(self.bet['amount']) / float(self.dataPlaceBet_user['amount']) > (self.statusProfitPersen / 10):
+        elif float(self.bet['amount']) / float(self.dataPlaceSetBetUser['amount']) > (self.statusProfitPersen / 10):
           self.statusCurrentChance = random.randrange(65, 80, 5)
           self.statusStepStrategy = "00"
           playGame.placeChance()
-        loss_chance_mapping = {
+        lossChanceMapping = {
             0: 4,
             2: 8,
             4: 12,
             8: 16
         }
         
-        if self.statusCurrentLose in loss_chance_mapping:
-            self.statusCurrentChance = loss_chance_mapping[self.statusCurrentLose]
+        if self.statusCurrentLose in lossChanceMapping:
+            self.statusCurrentChance = lossChanceMapping[self.statusCurrentLose]
             self.statusStepStrategy = f"{self.statusCurrentLose:02}"
             playGame.placeChance()
         elif self.statusCurrentLose > 10 and self.statusCurrentLose < 12:
@@ -252,7 +253,7 @@ class play_dice():
           self.statusCurrentChance += 15
           self.statusStepStrategy = "08"
           playGame.placeChance()
-        elif self.statusCurrentLuck >= self.statusTotalLuck and self.statusProfitPersen < self.statusLastProfitPersen and float(self.bet['amount']) > (float(self.dataPlaceBet_user['amount'])*0.0002):
+        elif self.statusCurrentLuck >= self.statusTotalLuck and self.statusProfitPersen < self.statusLastProfitPersen and float(self.bet['amount']) > (float(self.dataPlaceSetBetUser['amount'])*0.0002):
           self.statusCurrentChance += 30
           self.statusStepStrategy = "09"
           playGame.placeChance()
@@ -280,19 +281,19 @@ class play_dice():
       color.bgRiskAlert = ""
       color.txtRiskAlert = ""
       # Menentukan level risk berdasarkan persentase
-      if 1 <= self.risk_percentage <= 20:
+      if 1 <= self.riskPercentage <= 20:
           self.statusRiskAlert = "Low"
           color.bgRiskAlert = color.bgHijau
           color.txtRiskAlert = color.txtPutih
-      elif 31 <= self.risk_percentage <= 40:
+      elif 31 <= self.riskPercentage <= 40:
           self.statusRiskAlert = "Medium"
           color.bgRiskAlert = color.bgKuning
           color.txtRiskAlert = color.txtHitam
-      elif 61 <= self.risk_percentage <= 60:
+      elif 61 <= self.riskPercentage <= 60:
           self.statusRiskAlert = "High"
           color.bgRiskAlert = color.bgRed
           color.txtRiskAlert = color.txtPutih
-      elif self.risk_percentage > 60:
+      elif self.riskPercentage > 60:
           self.statusRiskAlert = "Very High"
           color.bgRiskAlert = color.bgRed
           color.txtRiskAlert = color.txtPutih
@@ -303,23 +304,23 @@ class play_dice():
 
   def csvStdOut(self):
       # Tentukan nama file CSV dan kolom-kolomnya
-      file_name = "data.csv"
+      fileName = "data.csv"
       columns = ["sWL", "sRC", "sM", "sSS", "sTB", "sPC", "sLPP"]
       
       # Inisialisasi class csvManager
-      csv_manager = csvManager(file_name, columns)
+      csvDataManger = csvManager(fileName, columns)
       
       # Tambah data baru (satu baris) ke dalam file
-      csv_manager.append_data({
+      csvDataManger.append_data({
       "sWL": self.statusWinLose, "sRC": utils.formated(self.statusResultChance, "double",2), "sM": utils.formated(self.statusMultiplier, "double", 2), "sSS": self.statusStepStrategy,
       "sTB": utils.formated(self.statusToBet, "desimal", 8), "sPC": utils.formated(self.statusTotalProfitCounter, "desimal", 8), "sLPP": utils.formated(self.statusLastProfitPersen, "persen", 3)
       })
       
       # Membaca dan mencetak data dari file CSV
-      #data = csv_manager.read_data()
+      #data = csvDataManger.read_data()
       #print(data)
 
-  def print_out(self):
+  def printOut(self):
       gap = color.colorText("|", color.bgEnd)
       sWL = color.colorText(self.statusWinLose, color.bgWinLose)
       sCCB = color.colorText(utils.formated(self.statusCurrentChanceBetting, "double", 2), color.bgWinLose, color.txtPutih)
@@ -327,7 +328,7 @@ class play_dice():
       sSS = color.colorText(self.statusStepStrategy, color.bgStep, color.txtStep)
       sTB = color.colorText(utils.formated(self.statusToBet, "desimal", 8), color.bgWinLose, color.txtKuning)
       #sDP (status data profit)
-      sDP = color.colorText(utils.formated(self.dataPlaceBet_bet["profit"], "desimal", 8), color.bgWinLose)
+      sDP = color.colorText(utils.formated(self.dataPlaceSetBet["profit"], "desimal", 8), color.bgWinLose)
       sPC = color.colorText(utils.formated(self.statusTotalProfitCounter, "desimal", 8), color.bgWinLose)
       sPP = color.colorText(utils.formated(self.statusProfitPersen, "persen", 3), color.bgWinLose, color.txtKuning)
       sLPP = color.colorText(utils.formated(self.statusLastProfitPersen, "persen", 3), color.bgPutih, color.txtKuning)
@@ -340,105 +341,106 @@ class play_dice():
       sCL = color.colorText(f'Lck:{utils.formated(self.statusCurrentLuck, "persen", 0)}', color.bgWinLose)
       sMB = color.colorText(f'M:{utils.formated(self.statusMaxBetting, "desimal", 8)}', color.bgWinLose)
       sRA = color.colorText(self.statusRiskAlert, color.bgRiskAlert, color.txtRiskAlert)
-      sB = color.colorText(f'B:{utils.formated(self.dataPlaceBet_user["amount"], "desimal", 8)}', color.bgWinLose)
-      sTIME = color.colorText(self.formatted_time, color.bgPutih, color.txtHitam)
+      sB = color.colorText(f'B:{utils.formated(self.dataPlaceSetBetUser["amount"], "desimal", 8)}', color.bgWinLose)
+      sTIME = color.colorText(self.formattedTime, color.bgPutih, color.txtHitam)
       sys.stdout.write(f'_\r {gap}{sRC}{gap}{sB}{gap}{sRA}{gap}{sCWL}{gap}{sHWL}{gap}{sTWL}{gap}\r')
-      
-def dice():
 
-  while True:
-    playGame.utilities()
+  def conerror():
+      time.sleep(1)
+      print('\nKoneksi terputus, memuat ulang koneksi')
+      try:
+        try:
+          print('Jalankan kembali')
+          executor()
+        except Exception as e:
+          print(f'\n Error {e}, Sedang Mencoba Kembali')
+      except Exception as e:
+        print(f'\n Error {e}, Sedang Mencoba Kembali')
+        playGame.conerror()
 
-    try:
+
+
+#PROGRAM EKSEKUTOR -------------------->>      
+
+#Instance Class ( Initialize )
+#Instance Class timer
+timer = timer()
+timer.startTimeCounter()
+#Instance Class
+utils.httpAdapter()
+
+interAPI = interactAPI('data.json')
+interAPI.startInit()
+interAPI.AccessInit()
+interAPI.responseBalance()
+interAPI.currencyCollector()
+interAPI.responseBets()
+interAPI.responseStatusRace()
+interAPI.responseRefreshSeed()
+interAPI.statusInfo()
+
+playGame = playDice(interAPI.currency, interAPI.headers)
+playGame.proccessBetData()
+
+#PROGRAM EKSEKUSI BERLANJUT
+while True:
+  try:
+    def executor():
+      #Eksekutor Objek Method
+      playGame.utilities()
       playGame.setChance()
       playGame.initChance()
-      playGame.basebet_counter()
-      playGame.process_place_bet()
-      playGame.process_chance_counter()
+      playGame.basebetCounter()
+      playGame.proccessPlaceBet()
+      playGame.proccessChanceCounter()
       playGame.initWinLose()
-      playGame.rule_bet_chance()
+      playGame.ruleBetChance()
       playGame.initChance()
-      playGame.nextbet_counter()
+      playGame.nextbetCounter()
       playGame.bettingBalanceCounter()
       playGame.placeChance()
       playGame.IsStrategy()
       playGame.bgTextChanger()
       playGame.csvStdOut()
-      playGame.print_out()
-      
-      
+      playGame.printOut()
+    executor()
 
-      def conerror():
-        time.sleep(1)
-        print('\nKoneksi terputus, memuat ulang koneksi')
-        try:
-          try:
-            print('Jalankan kembali')
-            dice()
-            conerror()
-          except Exception as e:
-            print(f'\n Error {e}, Sedang Mencoba Kembali')
-        except Exception as e:
-          print(f'\n Error {e}, Sedang Mencoba Kembali')
-          conerror()
-    except requests.exceptions.Timeout as e:
+  except requests.exceptions.Timeout as e:
+    utils.textShow(e)
+    playGame.conerror()
+  except (KeyError, NameError, ValueError, TypeError, IndexError, FileNotFoundError, AttributeError, IndentationError) as e:
+    if playGame.statusRiskAlert == "low":
       utils.textShow(e)
-      conerror()
-    except (KeyError, NameError, ValueError, TypeError, IndexError, FileNotFoundError, AttributeError, IndentationError) as e:
-      if playGame.statusRiskAlert == "low":
-        utils.textShow(e)
-        conerror()
-      else:
-        utils.textShow(e)
-        conerror()
+      playGame.conerror()
+    else:
+      utils.textShow(e)
+      playGame.conerror()
+      utils.sysExit()
+  except (ConnectionAbortedError, requests.exceptions.ConnectionError) as e:
+    print(f'\nTidak dapat terhubung, periksa koneksi internet anda error {e}')
+    playGame.conerror()
+  except ImportError as e:
+    utils.textShow(e)
+    moduleInstaller()
+    playGame.conerror()
+  except (KeyboardInterrupt, IOError) as e:
+    stop = input(f'\nPause, "y"(Lanjutkan)/"n"(Keluar): ').lower()
+    if stop == "y":
+      executor()
+    elif stop == "n":
+      utils.sysExit()
+  except Exception as e:
+    utils.textShow(e)
+    if playGame.statusRiskAlert == "low":
+      playGame.conerror()
+    else:
+      ecp = input(f'\nTerjadi Error, tetapi Risk {playGame.statusRiskAlert} ingin melanjutkan? (Y/N): ').lower()
+      if ecp == "y":
+        playGame.conerror()
+      elif ecp == "n":
+        print(f'Keluar Program')
         utils.sysExit()
-    except (ConnectionAbortedError, requests.exceptions.ConnectionError) as e:
-      print(f'\nTidak dapat terhubung, periksa koneksi internet anda error {e}')
-      conerror()
-    except ImportError as e:
-      utils.textShow(e)
-      moduleInstaller()
-      conerror()
-    except (KeyboardInterrupt, IOError) as e:
-      stop = input(f'\nPause, "y"(Lanjutkan)/"n"(Keluar): ').lower()
-      if stop == "y":
-        conerror()
-      elif stop == "n":
-        utils.sysExit()
-    except Exception as e:
-      utils.textShow(e)
-      if playGame.statusRiskAlert == "low":
-        conerror()
       else:
-        ecp = input(f'\nTerjadi Error, tetapi Risk {playGame.statusRiskAlert} ingin melanjutkan? (Y/N): ').lower()
-        if ecp == "y":
-          dice()
-        elif ecp == "n":
-          print(f'Keluar Program')
-          utils.sysExit()
-        else:
-          print(f'Pilih ya atau tidak!')
-          conerror()
-          utils.sysExit()
-
-#Instance timer
-timer = timer()
-timer.start_time_counter()
-
-#Instance
-utils.http_A()
-interAPI = interactAPI('data.json')
-interAPI.startInit()
-interAPI.AccessInit()
-interAPI.response_0()
-interAPI.currency_collector()
-interAPI.response_1()
-interAPI.response_2()
-interAPI.response_3()
-interAPI.status_info()
-playGame = play_dice(interAPI.currency, interAPI.headers)
-
-
-while True:
-  playGame.process_bet_data()
-  dice()
+        print(f'Pilih ya atau tidak!')
+        playGame.conerror()
+        utils.sysExit()
