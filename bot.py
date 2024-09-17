@@ -182,7 +182,6 @@ def dice():
       playGame.process_chance_counter()
       playGame.initWinLose()
             
-
       if playGame.bet['rule'] == "over":
         statusCurrentChanceBetting = 99.99-float(playGame.bet['bet_value'])
       else: 
@@ -196,7 +195,7 @@ def dice():
       def nextbet_counter():
         global b_counter, entr, statusMultiplier, statusToBet
         b_counter = 1/(float(playGame.bet['multiplier'])-1)+1
-        entr = ((playGame.statusCurrentLose*(playGame.statusCurrentLuck/5))/100)
+        entr = ((playGame.statusCurrentLose)/100)
         statusMultiplier = b_counter+entr
         statusToBet = float(playGame.dataPlaceBet_bet['amount'])*statusMultiplier
         return statusMultiplier, statusToBet
@@ -225,7 +224,7 @@ def dice():
           statusCurrentChance += 3
           placeChance()
         elif float(playGame.bet['amount']) / float(playGame.dataPlaceBet_user['amount']) > (playGame.statusProfitPersen / 10):
-          statusCurrentChance = random.randrange(65, 100, 5)
+          statusCurrentChance = random.randrange(65, 80, 5)
           statusStepStrategy = "00"
           placeChance()
         loss_chance_mapping = {
@@ -356,7 +355,7 @@ def dice():
         try:
           try:
             print('Jalankan kembali')
-            dice(interAPI.dataBets_bal_stat)
+            dice()
             conerror()
           except Exception as e:
             print(f'\n Error {e}, Sedang Mencoba Kembali')
@@ -392,7 +391,7 @@ def dice():
       else:
         ecp = input(f'\nTerjadi Error, tetapi Risk {playGame.statusRiskAlert} ingin melanjutkan? (Y/N): ').lower()
         if ecp == "y":
-          dice(interAPI.dataBets_bal_stat)
+          dice()
         else:
           utils.textShow(e)
           conerror()
