@@ -44,6 +44,9 @@ class play_dice():
     self.entr = {}
     self.statusMultiplier = {}
     self.statusToBet = {}
+
+    #Atribute fungis bettingBalanceCounter
+    self.risk_percentage = 0
     
     #Atribute General
     self.statusWinLose = "W"
@@ -64,6 +67,9 @@ class play_dice():
     self.statusLastProfitPersen = 0
     self.statusCurrentChanceBetting = 0
     self.statusResultChance = 0
+    self.statusMaxBetting = 0
+    self.statusCurrentChance = 0
+    self.statusStepStrategy = "00"
     
   def utilities(self):
       # Instance timer
@@ -190,10 +196,155 @@ class play_dice():
       self.statusMultiplier = self.b_counter+self.entr
       self.statusToBet = float(self.dataPlaceBet_bet['amount'])*self.statusMultiplier
         
+  def bettingBalanceCounter(self):
+      if self.statusToBet > self.statusMaxBetting :
+        self.statusMaxBetting = self.statusToBet
+  
+      # Menghitung persentase self.statusMaxBetting  terhadap statusBalance
+      self.risk_percentage = (float(utils.formated(self.statusMaxBetting, "desimal", 8)) / float(utils.formated(self.dataPlaceBet_user["amount"], "desimal", 8))) * 100
+
+  def placeChance(self):
+      fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = str(float(self.statusCurrentChance))
+      playGame.nextbet_counter()
+      playGame.initChance()
+
+  def IsStrategy(self):
+      if fileManager.dataFileJson['amount counter'] == "true" and self.onGame['if_lose'] == "0":
+        self.bet['rule'] = "under"
+        if self.statusWinLose == "W":
+          self.bet['amount'] = self.statusCurrentBaseBet
+        elif self.statusCurrentLose > 1: 
+          self.bet['amount'] = utils.formated(self.statusToBet, "float", 8)
+          self.statusCurrentChance += 3
+          playGame.placeChance()
+        elif float(self.bet['amount']) / float(self.dataPlaceBet_user['amount']) > (self.statusProfitPersen / 10):
+          self.statusCurrentChance = random.randrange(65, 80, 5)
+          self.statusStepStrategy = "00"
+          playGame.placeChance()
+        loss_chance_mapping = {
+            0: 4,
+            2: 8,
+            4: 12,
+            8: 16
+        }
+        
+        if self.statusCurrentLose in loss_chance_mapping:
+            self.statusCurrentChance = loss_chance_mapping[self.statusCurrentLose]
+            self.statusStepStrategy = f"{self.statusCurrentLose:02}"
+            playGame.placeChance()
+        elif self.statusCurrentLose > 10 and self.statusCurrentLose < 12:
+            self.statusCurrentChance += 8
+            self.statusStepStrategy = "05"
+            playGame.placeChance()
+        elif self.statusCurrentLose > 14:
+            self.statusCurrentChance += 12
+            self.statusStepStrategy = "06"
+            playGame.placeChance()
+        elif self.statusProfitPersen < self.statusLastProfitPersen or self.statusCurrentLose >= self.statusHigherLose/2:
+          self.statusCurrentChance += 6
+          self.statusStepStrategy = "07"
+          playGame.placeChance()
+          try:
+            self.statusCurrentLuck = self.statusTotalWin/self.statusTotalLose*100
+          except ZeroDivisionError:
+            self.statusCurrentLuck = 20
+        elif self.statusCurrentLuck < self.statusTotalLuck and self.statusProfitPersen < self.statusLastProfitPersen:
+          self.statusCurrentChance += 15
+          self.statusStepStrategy = "08"
+          playGame.placeChance()
+        elif self.statusCurrentLuck >= self.statusTotalLuck and self.statusProfitPersen < self.statusLastProfitPersen and float(self.bet['amount']) > (float(self.dataPlaceBet_user['amount'])*0.0002):
+          self.statusCurrentChance += 30
+          self.statusStepStrategy = "09"
+          playGame.placeChance()
+
+      if float(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On']) >= 75: 
+        fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = "75"
+          
+  def bgTextChanger(self):
+      if self.statusStepStrategy == "00":
+          color.bgStep = color.bgPutih
+          color.txtStep = color.txtHitam
+      elif self.statusStepStrategy in {"01", "02", "03"}:
+          color.bgStep = color.bgHijau
+          color.txtStep = color.txtPutih
+      elif self.statusStepStrategy in {"04", "05", "06"}:
+          color.bgStep = color.bgKuning
+          color.txtStep = color.txtHitam
+      elif self.statusStepStrategy in {"07", "08"} or self.statusStepStrategy >= "09":
+          color.bgStep = color.bgRed
+          color.txtStep = color.txtPutih
+      else:
+          color.bgStep = color.bgBiru
+          color.txtStep = color.txtPutih
+
+      color.bgRiskAlert = ""
+      color.txtRiskAlert = ""
+      # Menentukan level risk berdasarkan persentase
+      if 1 <= self.risk_percentage <= 20:
+          self.statusRiskAlert = "Low"
+          color.bgRiskAlert = color.bgHijau
+          color.txtRiskAlert = color.txtPutih
+      elif 31 <= self.risk_percentage <= 40:
+          self.statusRiskAlert = "Medium"
+          color.bgRiskAlert = color.bgKuning
+          color.txtRiskAlert = color.txtHitam
+      elif 61 <= self.risk_percentage <= 60:
+          self.statusRiskAlert = "High"
+          color.bgRiskAlert = color.bgRed
+          color.txtRiskAlert = color.txtPutih
+      elif self.risk_percentage > 60:
+          self.statusRiskAlert = "Very High"
+          color.bgRiskAlert = color.bgRed
+          color.txtRiskAlert = color.txtPutih
+      else:
+          self.statusRiskAlert = "No Risk"
+          color.bgRiskAlert = color.bgPutih
+          color.txtRiskAlert = color.txtHitam
+
+  def csvStdOut(self):
+      # Tentukan nama file CSV dan kolom-kolomnya
+      file_name = "data.csv"
+      columns = ["sWL", "sRC", "sM", "sSS", "sTB", "sPC", "sLPP"]
+      
+      # Inisialisasi class csvManager
+      csv_manager = csvManager(file_name, columns)
+      
+      # Tambah data baru (satu baris) ke dalam file
+      csv_manager.append_data({
+      "sWL": self.statusWinLose, "sRC": utils.formated(self.statusResultChance, "double",2), "sM": utils.formated(self.statusMultiplier, "double", 2), "sSS": self.statusStepStrategy,
+      "sTB": utils.formated(self.statusToBet, "desimal", 8), "sPC": utils.formated(self.statusTotalProfitCounter, "desimal", 8), "sLPP": utils.formated(self.statusLastProfitPersen, "persen", 3)
+      })
+      
+      # Membaca dan mencetak data dari file CSV
+      #data = csv_manager.read_data()
+      #print(data)
+
+  def print_out(self):
+      gap = color.colorText("|", color.bgEnd)
+      sWL = color.colorText(self.statusWinLose, color.bgWinLose)
+      sCCB = color.colorText(utils.formated(self.statusCurrentChanceBetting, "double", 2), color.bgWinLose, color.txtPutih)
+      sM = color.colorText(utils.formated(self.statusMultiplier, "double", 2), color.bgUngu, color.txtPutih)
+      sSS = color.colorText(self.statusStepStrategy, color.bgStep, color.txtStep)
+      sTB = color.colorText(utils.formated(self.statusToBet, "desimal", 8), color.bgWinLose, color.txtKuning)
+      #sDP (status data profit)
+      sDP = color.colorText(utils.formated(self.dataPlaceBet_bet["profit"], "desimal", 8), color.bgWinLose)
+      sPC = color.colorText(utils.formated(self.statusTotalProfitCounter, "desimal", 8), color.bgWinLose)
+      sPP = color.colorText(utils.formated(self.statusProfitPersen, "persen", 3), color.bgWinLose, color.txtKuning)
+      sLPP = color.colorText(utils.formated(self.statusLastProfitPersen, "persen", 3), color.bgPutih, color.txtKuning)
+      print(f'{gap}{sWL}{gap}{sCCB}{gap}{sM}{gap}{sSS}{gap}{sTB}{gap}{sDP}{gap}{sPC}{gap}{sPP}{gap}')
+      
+      sTWL = color.colorText(f'T:{self.statusTotalWin}/{self.statusTotalLose}', color.bgUngu)
+      sHWL = color.colorText(f'H:{self.statusHigherWin}/{self.statusHigherLose}', color.bgUngu)
+      sCWL = color.colorText(f'C:{self.statusCurrentWin}/{self.statusCurrentLose}', color.bgUngu)
+      sRC = color.colorText(f'RC:{utils.formated(self.statusResultChance, "double",2)}', color.bgWinLose, color.txtPutih)
+      sCL = color.colorText(f'Lck:{utils.formated(self.statusCurrentLuck, "persen", 0)}', color.bgWinLose)
+      sMB = color.colorText(f'M:{utils.formated(self.statusMaxBetting, "desimal", 8)}', color.bgWinLose)
+      sRA = color.colorText(self.statusRiskAlert, color.bgRiskAlert, color.txtRiskAlert)
+      sB = color.colorText(f'B:{utils.formated(self.dataPlaceBet_user["amount"], "desimal", 8)}', color.bgWinLose)
+      sTIME = color.colorText(self.formatted_time, color.bgPutih, color.txtHitam)
+      sys.stdout.write(f'_\r {gap}{sRC}{gap}{sB}{gap}{sRA}{gap}{sCWL}{gap}{sHWL}{gap}{sTWL}{gap}\r')
+      
 def dice():
-  statusStepStrategy = "00"
-  statusCurrentChance = 0
-  statusMaxBetting = 0
 
   while True:
     playGame.utilities()
@@ -208,154 +359,14 @@ def dice():
       playGame.rule_bet_chance()
       playGame.initChance()
       playGame.nextbet_counter()
+      playGame.bettingBalanceCounter()
+      playGame.placeChance()
+      playGame.IsStrategy()
+      playGame.bgTextChanger()
+      playGame.csvStdOut()
+      playGame.print_out()
       
-
-      if playGame.statusToBet > statusMaxBetting :
-        statusMaxBetting = playGame.statusToBet
-  
-      # Menghitung persentase statusMaxBetting  terhadap sB
-      risk_percentage = (float(utils.formated(statusMaxBetting, "desimal", 8)) / float(utils.formated(playGame.dataPlaceBet_user["amount"], "desimal", 8))) * 100
-
-      def placeChance():
-        fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = str(float(statusCurrentChance))
-        playGame.nextbet_counter()
-        playGame.initChance()
-
-      if fileManager.dataFileJson['amount counter'] == "true" and playGame.onGame['if_lose'] == "0":
-        playGame.bet['rule'] = "under"
-        if playGame.statusWinLose == "W":
-          playGame.bet['amount'] = playGame.statusCurrentBaseBet
-        elif playGame.statusCurrentLose > 1: 
-          playGame.bet['amount'] = utils.formated(playGame.statusToBet, "float", 8)
-          statusCurrentChance += 3
-          placeChance()
-        elif float(playGame.bet['amount']) / float(playGame.dataPlaceBet_user['amount']) > (playGame.statusProfitPersen / 10):
-          statusCurrentChance = random.randrange(65, 80, 5)
-          statusStepStrategy = "00"
-          placeChance()
-        loss_chance_mapping = {
-            0: 4,
-            2: 8,
-            4: 12,
-            8: 16
-        }
-        
-        if playGame.statusCurrentLose in loss_chance_mapping:
-            statusCurrentChance = loss_chance_mapping[playGame.statusCurrentLose]
-            statusStepStrategy = f"{playGame.statusCurrentLose:02}"
-            placeChance()
-        elif playGame.statusCurrentLose > 10 and playGame.statusCurrentLose < 12:
-            statusCurrentChance += 8
-            statusStepStrategy = "05"
-            placeChance()
-        elif playGame.statusCurrentLose > 14:
-            statusCurrentChance += 12
-            statusStepStrategy = "06"
-            placeChance()
-        elif playGame.statusProfitPersen < playGame.statusLastProfitPersen or playGame.statusCurrentLose >= playGame.statusHigherLose/2:
-          statusCurrentChance += 6
-          statusStepStrategy = "07"
-          placeChance()
-          try:
-            playGame.statusCurrentLuck = playGame.statusTotalWin/playGame.statusTotalLose*100
-          except ZeroDivisionError:
-           playGame.statusCurrentLuck = 20
-        elif playGame.statusCurrentLuck < playGame.statusTotalLuck and playGame.statusProfitPersen < playGame.statusLastProfitPersen:
-          statusCurrentChance += 15
-          statusStepStrategy = "08"
-          placeChance()
-        elif playGame.statusCurrentLuck >= playGame.statusTotalLuck and playGame.statusProfitPersen < playGame.statusLastProfitPersen and float(playGame.bet['amount']) > (float(playGame.dataPlaceBet_user['amount'])*0.0002):
-          statusCurrentChance += 30
-          statusStepStrategy = "09"
-          placeChance()
-        
-      if statusStepStrategy == "00":
-          color.bgStep = color.bgPutih
-          color.txtStep = color.txtHitam
-      elif statusStepStrategy in {"01", "02", "03"}:
-          color.bgStep = color.bgHijau
-          color.txtStep = color.txtPutih
-      elif statusStepStrategy in {"04", "05", "06"}:
-          color.bgStep = color.bgKuning
-          color.txtStep = color.txtHitam
-      elif statusStepStrategy in {"07", "08"} or statusStepStrategy >= "09":
-          color.bgStep = color.bgRed
-          color.txtStep = color.txtPutih
-      else:
-          color.bgStep = color.bgBiru
-          color.txtStep = color.txtPutih
-    
-      color.bgRiskAlert = ""
-      color.txtRiskAlert = ""
-      # Menentukan level risk berdasarkan persentase
-      if 1 <= risk_percentage <= 20:
-          playGame.statusRiskAlert = "Low"
-          color.bgRiskAlert = color.bgHijau
-          color.txtRiskAlert = color.txtPutih
-      elif 31 <= risk_percentage <= 40:
-          playGame.statusRiskAlert = "Medium"
-          color.bgRiskAlert = color.bgKuning
-          color.txtRiskAlert = color.txtHitam
-      elif 61 <= risk_percentage <= 60:
-          playGame.statusRiskAlert = "High"
-          color.bgRiskAlert = color.bgRed
-          color.txtRiskAlert = color.txtPutih
-      elif risk_percentage > 60:
-          playGame.statusRiskAlert = "Very High"
-          color.bgRiskAlert = color.bgRed
-          color.txtRiskAlert = color.txtPutih
-      else:
-          playGame.statusRiskAlert = "No Risk"
-          color.bgRiskAlert = color.bgPutih
-          color.txtRiskAlert = color.txtHitam
-    
-      if float(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On']) >= 75: 
-        fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = "75"
       
-      def csvStdOut():
-        # Tentukan nama file CSV dan kolom-kolomnya
-        file_name = "data.csv"
-        columns = ["sWL", "sRC", "sM", "sSS", "sTB", "sPC", "sLPP"]
-        
-        # Inisialisasi class csvManager
-        csv_manager = csvManager(file_name, columns)
-        
-        # Tambah data baru (satu baris) ke dalam file
-        csv_manager.append_data({
-        "sWL": playGame.statusWinLose, "sRC": utils.formated(playGame.statusResultChance, "double",2), "sM": utils.formated(playGame.statusMultiplier, "double", 2), "sSS": statusStepStrategy,
-        "sTB": utils.formated(playGame.statusToBet, "desimal", 8), "sPC": utils.formated(playGame.statusTotalProfitCounter, "desimal", 8), "sLPP": utils.formated(playGame.statusLastProfitPersen, "persen", 3)
-        })
-        
-        # Membaca dan mencetak data dari file CSV
-        #data = csv_manager.read_data()
-        #print(data)
-      csvStdOut()
-      
-      def print_out():
-        gap = color.colorText("|", color.bgEnd)
-        sWL = color.colorText(playGame.statusWinLose, color.bgWinLose)
-        sCCB = color.colorText(utils.formated(playGame.statusCurrentChanceBetting, "double", 2), color.bgWinLose, color.txtPutih)
-        sM = color.colorText(utils.formated(playGame.statusMultiplier, "double", 2), color.bgUngu, color.txtPutih)
-        sSS = color.colorText(statusStepStrategy, color.bgStep, color.txtStep)
-        sTB = color.colorText(utils.formated(playGame.statusToBet, "desimal", 8), color.bgWinLose, color.txtKuning)
-        #sDP (status data profit)
-        sDP = color.colorText(utils.formated(playGame.dataPlaceBet_bet["profit"], "desimal", 8), color.bgWinLose)
-        sPC = color.colorText(utils.formated(playGame.statusTotalProfitCounter, "desimal", 8), color.bgWinLose)
-        sPP = color.colorText(utils.formated(playGame.statusProfitPersen, "persen", 3), color.bgWinLose, color.txtKuning)
-        sLPP = color.colorText(utils.formated(playGame.statusLastProfitPersen, "persen", 3), color.bgPutih, color.txtKuning)
-        print(f'{gap}{sWL}{gap}{sCCB}{gap}{sM}{gap}{sSS}{gap}{sTB}{gap}{sDP}{gap}{sPC}{gap}{sPP}{gap}')
-        
-        sTWL = color.colorText(f'T:{playGame.statusTotalWin}/{playGame.statusTotalLose}', color.bgUngu)
-        sHWL = color.colorText(f'H:{playGame.statusHigherWin}/{playGame.statusHigherLose}', color.bgUngu)
-        sCWL = color.colorText(f'C:{playGame.statusCurrentWin}/{playGame.statusCurrentLose}', color.bgUngu)
-        sRC = color.colorText(f'RC:{utils.formated(playGame.statusResultChance, "double",2)}', color.bgWinLose, color.txtPutih)
-        sCL = color.colorText(f'Lck:{utils.formated(playGame.statusCurrentLuck, "persen", 0)}', color.bgWinLose)
-        sMB = color.colorText(f'M:{utils.formated(statusMaxBetting, "desimal", 8)}', color.bgWinLose)
-        sRA = color.colorText(playGame.statusRiskAlert, color.bgRiskAlert, color.txtRiskAlert)
-        sB = color.colorText(f'B:{utils.formated(playGame.dataPlaceBet_user["amount"], "desimal", 8)}', color.bgWinLose)
-        sTIME = color.colorText(playGame.formatted_time, color.bgPutih, color.txtHitam)
-        sys.stdout.write(f'_\r {gap}{sRC}{gap}{sB}{gap}{sRA}{gap}{sCWL}{gap}{sHWL}{gap}{sTWL}{gap}\r')
-      print_out()
 
       def conerror():
         time.sleep(1)
@@ -389,8 +400,10 @@ def dice():
       moduleInstaller()
       conerror()
     except (KeyboardInterrupt, IOError) as e:
-      stop = input(f'\nProgram terhenti {e}, enter untuk keluar ').lower()
-      if stop == "":
+      stop = input(f'\nPause, "y"(Lanjutkan)/"n"(Keluar): ').lower()
+      if stop == "y":
+        conerror()
+      elif stop == "n":
         utils.sysExit()
     except Exception as e:
       utils.textShow(e)
@@ -400,8 +413,11 @@ def dice():
         ecp = input(f'\nTerjadi Error, tetapi Risk {playGame.statusRiskAlert} ingin melanjutkan? (Y/N): ').lower()
         if ecp == "y":
           dice()
+        elif ecp == "n":
+          print(f'Keluar Program')
+          utils.sysExit()
         else:
-          utils.textShow(e)
+          print(f'Pilih ya atau tidak!')
           conerror()
           utils.sysExit()
 
@@ -420,9 +436,9 @@ interAPI.response_1()
 interAPI.response_2()
 interAPI.response_3()
 interAPI.status_info()
+playGame = play_dice(interAPI.currency, interAPI.headers)
 
 
 while True:
-  playGame = play_dice(interAPI.currency, interAPI.headers)
   playGame.process_bet_data()
   dice()
