@@ -38,6 +38,12 @@ class play_dice():
     
     #Atribute fungsi initWinLose
     self.lose_data = []
+
+    #Atribute fungsi nextbet_counter
+    self.b_counter = {}
+    self.entr = {}
+    self.statusMultiplier = {}
+    self.statusToBet = {}
     
     #Atribute General
     self.statusWinLose = "W"
@@ -56,6 +62,8 @@ class play_dice():
     self.statusTotalProfitCounter = 0
     self.statusProfitPersen = 0
     self.statusLastProfitPersen = 0
+    self.statusCurrentChanceBetting = 0
+    self.statusResultChance = 0
     
   def utilities(self):
       # Instance timer
@@ -165,6 +173,22 @@ class play_dice():
       self.statusProfitPersen = abs(self.statusTotalProfitCounter/float(interAPI.dataBets_bal_stat)*100)
       if self.statusProfitPersen > self.statusLastProfitPersen and self.statusWinLose == "W":
         self.statusLastProfitPersen = self.statusProfitPersen
+
+  def rule_bet_chance(self):
+      if self.bet['rule'] == "over":
+        self.statusCurrentChanceBetting = 99.99-float(self.bet['bet_value'])
+      else: 
+        self.statusCurrentChanceBetting = self.bet['bet_value']
+      if self.dataPlaceBet_bet['rule'] == "over":
+        self.statusResultChance = 99.99-float(self.dataPlaceBet_bet['result_value'])
+      else: 
+        self.statusResultChance = self.dataPlaceBet_bet['result_value']
+    
+  def nextbet_counter(self):
+      self.b_counter = 1/(float(self.bet['multiplier'])-1)+1
+      self.entr = ((self.statusCurrentLose)/100)
+      self.statusMultiplier = self.b_counter+self.entr
+      self.statusToBet = float(self.dataPlaceBet_bet['amount'])*self.statusMultiplier
         
 def dice():
   statusStepStrategy = "00"
@@ -181,38 +205,20 @@ def dice():
       playGame.process_place_bet()
       playGame.process_chance_counter()
       playGame.initWinLose()
-            
-      if playGame.bet['rule'] == "over":
-        statusCurrentChanceBetting = 99.99-float(playGame.bet['bet_value'])
-      else: 
-        statusCurrentChanceBetting = playGame.bet['bet_value']
-      if playGame.dataPlaceBet_bet['rule'] == "over":
-        statusResultChance = 99.99-float(playGame.dataPlaceBet_bet['result_value'])
-      else: 
-        statusResultChance = playGame.dataPlaceBet_bet['result_value']
+      playGame.rule_bet_chance()
       playGame.initChance()
-
-      def nextbet_counter():
-        global b_counter, entr, statusMultiplier, statusToBet
-        b_counter = 1/(float(playGame.bet['multiplier'])-1)+1
-        entr = ((playGame.statusCurrentLose)/100)
-        statusMultiplier = b_counter+entr
-        statusToBet = float(playGame.dataPlaceBet_bet['amount'])*statusMultiplier
-        return statusMultiplier, statusToBet
-      nextbet_counter()
-      statusMultiplier, statusToBet = nextbet_counter()
+      playGame.nextbet_counter()
       
-      color.bgRiskAlert = ""
-      color.txtRiskAlert = ""
-      if statusToBet > statusMaxBetting :
-        statusMaxBetting = statusToBet
+
+      if playGame.statusToBet > statusMaxBetting :
+        statusMaxBetting = playGame.statusToBet
   
       # Menghitung persentase statusMaxBetting  terhadap sB
       risk_percentage = (float(utils.formated(statusMaxBetting, "desimal", 8)) / float(utils.formated(playGame.dataPlaceBet_user["amount"], "desimal", 8))) * 100
 
       def placeChance():
         fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = str(float(statusCurrentChance))
-        nextbet_counter()
+        playGame.nextbet_counter()
         playGame.initChance()
 
       if fileManager.dataFileJson['amount counter'] == "true" and playGame.onGame['if_lose'] == "0":
@@ -220,7 +226,7 @@ def dice():
         if playGame.statusWinLose == "W":
           playGame.bet['amount'] = playGame.statusCurrentBaseBet
         elif playGame.statusCurrentLose > 1: 
-          playGame.bet['amount'] = utils.formated(statusToBet, "float", 8)
+          playGame.bet['amount'] = utils.formated(playGame.statusToBet, "float", 8)
           statusCurrentChance += 3
           placeChance()
         elif float(playGame.bet['amount']) / float(playGame.dataPlaceBet_user['amount']) > (playGame.statusProfitPersen / 10):
@@ -279,6 +285,8 @@ def dice():
           color.bgStep = color.bgBiru
           color.txtStep = color.txtPutih
     
+      color.bgRiskAlert = ""
+      color.txtRiskAlert = ""
       # Menentukan level risk berdasarkan persentase
       if 1 <= risk_percentage <= 20:
           playGame.statusRiskAlert = "Low"
@@ -314,8 +322,8 @@ def dice():
         
         # Tambah data baru (satu baris) ke dalam file
         csv_manager.append_data({
-        "sWL": playGame.statusWinLose, "sRC": utils.formated(statusResultChance, "double",2), "sM": utils.formated(statusMultiplier, "double", 2), "sSS": statusStepStrategy,
-        "sTB": utils.formated(statusToBet, "desimal", 8), "sPC": utils.formated(playGame.statusTotalProfitCounter, "desimal", 8), "sLPP": utils.formated(playGame.statusLastProfitPersen, "persen", 3)
+        "sWL": playGame.statusWinLose, "sRC": utils.formated(playGame.statusResultChance, "double",2), "sM": utils.formated(playGame.statusMultiplier, "double", 2), "sSS": statusStepStrategy,
+        "sTB": utils.formated(playGame.statusToBet, "desimal", 8), "sPC": utils.formated(playGame.statusTotalProfitCounter, "desimal", 8), "sLPP": utils.formated(playGame.statusLastProfitPersen, "persen", 3)
         })
         
         # Membaca dan mencetak data dari file CSV
@@ -326,10 +334,10 @@ def dice():
       def print_out():
         gap = color.colorText("|", color.bgEnd)
         sWL = color.colorText(playGame.statusWinLose, color.bgWinLose)
-        sCCB = color.colorText(utils.formated(statusCurrentChanceBetting, "double", 2), color.bgWinLose, color.txtPutih)
-        sM = color.colorText(utils.formated(statusMultiplier, "double", 2), color.bgUngu, color.txtPutih)
+        sCCB = color.colorText(utils.formated(playGame.statusCurrentChanceBetting, "double", 2), color.bgWinLose, color.txtPutih)
+        sM = color.colorText(utils.formated(playGame.statusMultiplier, "double", 2), color.bgUngu, color.txtPutih)
         sSS = color.colorText(statusStepStrategy, color.bgStep, color.txtStep)
-        sTB = color.colorText(utils.formated(statusToBet, "desimal", 8), color.bgWinLose, color.txtKuning)
+        sTB = color.colorText(utils.formated(playGame.statusToBet, "desimal", 8), color.bgWinLose, color.txtKuning)
         #sDP (status data profit)
         sDP = color.colorText(utils.formated(playGame.dataPlaceBet_bet["profit"], "desimal", 8), color.bgWinLose)
         sPC = color.colorText(utils.formated(playGame.statusTotalProfitCounter, "desimal", 8), color.bgWinLose)
@@ -340,7 +348,7 @@ def dice():
         sTWL = color.colorText(f'T:{playGame.statusTotalWin}/{playGame.statusTotalLose}', color.bgUngu)
         sHWL = color.colorText(f'H:{playGame.statusHigherWin}/{playGame.statusHigherLose}', color.bgUngu)
         sCWL = color.colorText(f'C:{playGame.statusCurrentWin}/{playGame.statusCurrentLose}', color.bgUngu)
-        sRC = color.colorText(f'RC:{utils.formated(statusResultChance, "double",2)}', color.bgWinLose, color.txtPutih)
+        sRC = color.colorText(f'RC:{utils.formated(playGame.statusResultChance, "double",2)}', color.bgWinLose, color.txtPutih)
         sCL = color.colorText(f'Lck:{utils.formated(playGame.statusCurrentLuck, "persen", 0)}', color.bgWinLose)
         sMB = color.colorText(f'M:{utils.formated(statusMaxBetting, "desimal", 8)}', color.bgWinLose)
         sRA = color.colorText(playGame.statusRiskAlert, color.bgRiskAlert, color.txtRiskAlert)
