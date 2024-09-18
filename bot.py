@@ -81,7 +81,7 @@ class playDice():
       if utils.every(25, (self.statusTotalLose + self.statusTotalWin)):
         interAPI.responseRefreshSeed()
       
-      if self.statusHigherLose >= 10 and self.statusRiskAlert == "Medium" and self.statusWinLose == "W":
+      if self.statusHigherLose >= 10 and self.statusWinLose == "W" and self.statusRiskAlert == "Medium"  or self.statusRiskAlert == "High" or self.statusRiskAlert == "Very High":
         interAPI.responseRefreshSeed()
         utils.sysExit()
         
@@ -150,17 +150,17 @@ class playDice():
         color.bgWinLose = color.bgHijau
         self.statusWinLose = "W" 
         self.statusTotalWin += 1
-        self.statusTotalWin += 1
+        self.statusCurrentWin += 1
         self.statusCurrentLose = 0
-        if self.statusTotalWin > self.statusHigherWin:
-          self.statusHigherWin = self.statusTotalWin
+        if self.statusCurrentWin > self.statusHigherWin:
+          self.statusHigherWin = self.statusCurrentWin
       else: 
         self.loseData.append(abs(float(self.dataPlaceSetBet['profit'])))
         color.bgWinLose = color.bgRed
         self.statusWinLose = "L"
-        self.statusCurrentLose += 1
         self.statusTotalLose += 1
-        self.statusTotalWin = 0
+        self.statusCurrentLose += 1
+        self.statusCurrentWin = 0
         if self.statusCurrentLose > self.statusHigherLose:
           self.statusHigherLose = self.statusCurrentLose
       sumLoseData = sum(self.loseData)
@@ -193,7 +193,7 @@ class playDice():
     
   def nextbetCounter(self):
       self.balanceCounter = 1/(float(self.bet['multiplier'])-1)+1
-      self.EtrCounter = ((self.statusCurrentLose)/100)
+      self.EtrCounter = ((self.statusCurrentLose+(self.statusCurrentChance/2))/100)
       self.statusMultiplier = self.balanceCounter+self.EtrCounter
       self.statusToBet = float(self.dataPlaceSetBet['amount'])*self.statusMultiplier
         
@@ -210,17 +210,23 @@ class playDice():
       playGame.initChance()
 
   def IsStrategy(self):
-      if fileManager.dataFileJson['amount counter'] == "true" and self.onGame['if_lose'] == "0":
+      try:
+        self.statusCurrentLuck = self.statusTotalWin/self.statusTotalLose*100
+      except ZeroDivisionError:
+        self.statusCurrentLuck = 0
+        
+      if fileManager.dataFileJson['amount counter'] == "true":
         self.bet['rule'] = "under"
         if self.statusWinLose == "W":
           self.bet['amount'] = self.statusCurrentBaseBet
-        elif self.statusCurrentLose > 1: 
+        elif self.statusCurrentLose > 1:
           self.bet['amount'] = utils.formated(self.statusToBet, "float", 8)
           self.statusCurrentChance += 3
+          self.statusStepStrategy = "01"
           playGame.placeChance()
         elif float(self.bet['amount']) / float(self.dataPlaceSetBetUser['amount']) > (self.statusProfitPersen / 10):
           self.statusCurrentChance = random.randrange(65, 80, 5)
-          self.statusStepStrategy = "00"
+          self.statusStepStrategy = "02"
           playGame.placeChance()
         lossChanceMapping = {
             0: 4,
@@ -231,30 +237,26 @@ class playDice():
         
         if self.statusCurrentLose in lossChanceMapping:
             self.statusCurrentChance = lossChanceMapping[self.statusCurrentLose]
-            self.statusStepStrategy = f"{self.statusCurrentLose:02}"
+            self.statusStepStrategy = "03"
             playGame.placeChance()
-        elif self.statusCurrentLose > 10 and self.statusCurrentLose < 12:
+        elif self.statusCurrentLose > 8 and self.statusCurrentLose < 10:
             self.statusCurrentChance += 8
+            self.statusStepStrategy = "04"
+            playGame.placeChance()
+        elif self.statusCurrentLose > 12:
+            self.statusCurrentChance += 11
             self.statusStepStrategy = "05"
             playGame.placeChance()
-        elif self.statusCurrentLose > 14:
-            self.statusCurrentChance += 12
-            self.statusStepStrategy = "06"
-            playGame.placeChance()
-        elif self.statusProfitPersen < self.statusLastProfitPersen or self.statusCurrentLose >= self.statusHigherLose/2:
-          self.statusCurrentChance += 6
-          self.statusStepStrategy = "07"
+        elif self.statusCurrentLose >= self.statusHigherLose/2:
+          self.statusCurrentChance += 7
+          self.statusStepStrategy = "06"
           playGame.placeChance()
-          try:
-            self.statusCurrentLuck = self.statusTotalWin/self.statusTotalLose*100
-          except ZeroDivisionError:
-            self.statusCurrentLuck = 20
         elif self.statusCurrentLuck < self.statusTotalLuck and self.statusProfitPersen < self.statusLastProfitPersen:
           self.statusCurrentChance += 15
-          self.statusStepStrategy = "08"
+          self.statusStepStrategy = "07"
           playGame.placeChance()
-        elif self.statusCurrentLuck >= self.statusTotalLuck and self.statusProfitPersen < self.statusLastProfitPersen and float(self.bet['amount']) > (float(self.dataPlaceSetBetUser['amount'])*0.0002):
-          self.statusCurrentChance += 30
+        elif self.statusProfitPersen < self.statusLastProfitPersen and float(self.bet['amount']) > (float(self.dataPlaceSetBetUser['amount'])*0.0002):
+          self.statusCurrentChance += 20
           self.statusStepStrategy = "09"
           playGame.placeChance()
 
@@ -331,8 +333,8 @@ class playDice():
       sDP = color.colorText(utils.formated(self.dataPlaceSetBet["profit"], "desimal", 8), color.bgWinLose)
       sPC = color.colorText(utils.formated(self.statusTotalProfitCounter, "desimal", 8), color.bgWinLose)
       sPP = color.colorText(utils.formated(self.statusProfitPersen, "persen", 3), color.bgWinLose, color.txtKuning)
-      sLPP = color.colorText(utils.formated(self.statusLastProfitPersen, "persen", 3), color.bgPutih, color.txtKuning)
-      print(f'{gap}{sWL}{gap}{sCCB}{gap}{sM}{gap}{sSS}{gap}{sTB}{gap}{sDP}{gap}{sPC}{gap}{sPP}{gap}')
+      sLPP = color.colorText(utils.formated(self.statusLastProfitPersen, "persen", 3), color.bgWinLose, color.txtKuning)
+      print(f'{gap}{sWL}{gap}{sSS}{gap}{sCCB}{gap}{sM}{gap}{sTB}{gap}{sDP}{gap}{sPC}{gap}{sPP}{gap}')
       
       sTWL = color.colorText(f'T:{self.statusTotalWin}/{self.statusTotalLose}', color.bgUngu)
       sHWL = color.colorText(f'H:{self.statusHigherWin}/{self.statusHigherLose}', color.bgUngu)
@@ -345,7 +347,7 @@ class playDice():
       sTIME = color.colorText(self.formattedTime, color.bgPutih, color.txtHitam)
       sys.stdout.write(f'_\r {gap}{sRC}{gap}{sB}{gap}{sRA}{gap}{sCWL}{gap}{sHWL}{gap}{sTWL}{gap}\r')
 
-  def conerror():
+  def conerror(self):
       time.sleep(1)
       print('\nKoneksi terputus, memuat ulang koneksi')
       try:
@@ -423,8 +425,8 @@ while True:
     utils.textShow(e)
     moduleInstaller()
     playGame.conerror()
-  except (KeyboardInterrupt, IOError) as e:
-    stop = input(f'\nPause, "y"(Lanjutkan)/"n"(Keluar): ').lower()
+  except (KeyboardInterrupt, IOError):
+    stop = input('\nPause, "y"(Lanjutkan)/"n"(Keluar): ').lower()
     if stop == "y":
       executor()
     elif stop == "n":
@@ -438,9 +440,9 @@ while True:
       if ecp == "y":
         playGame.conerror()
       elif ecp == "n":
-        print(f'Keluar Program')
+        print('Keluar Program')
         utils.sysExit()
       else:
-        print(f'Pilih ya atau tidak!')
+        print('Pilih ya atau tidak!')
         playGame.conerror()
         utils.sysExit()
