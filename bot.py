@@ -365,7 +365,7 @@ class playDice():
 
 #PROGRAM EKSEKUTOR -------------------->>      
 def eksekutor(data):
-  global timer, interAPI, playDice, playGame
+  global timer, interAPI, playDice, 
   #Instance Class ( Initialize )
   #Instance Class timer
   timer = timer()

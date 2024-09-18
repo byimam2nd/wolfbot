@@ -1,7 +1,7 @@
 {
   "Play Game" : {
     "Currency" : "usdt",
-    "Amount": "0.000001",
+    "Amount": "0.0000001",
     "Divider": "100000",
     "Chance to Win" : {
         "Chance On" : "50",
