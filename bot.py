@@ -9,11 +9,14 @@ try:
   import requests
   import time
 except ModuleNotFoundError:
-  installer.moduleInstaller().installModules()
+  installer.moduleInstaller()
 
 from installer import moduleInstaller
 from mainFunction import urls, utils, fileManager, csvManager, InitConnection, interactAPI, timer
 from color import color
+from textual.app import App
+from textual.widgets import Button
+from textual.reactive import Reactive
 
 class playDice():
   def __init__(self, currency, headers):
@@ -29,7 +32,7 @@ class playDice():
     #Atribute fungsi setChance
     self.setChanceOn = {}
     self.setChanceRandom = {}
-    self.setChanceMultiRandom = {}
+    self.setChanceMulRandom = {}
     
     #Atribute fungsi Process Bet Data
     self.headers = headers
@@ -72,6 +75,15 @@ class playDice():
     self.statusCurrentChance = 0
     self.statusStepStrategy = "00"
     
+  def proccessBetData(self):
+      self.bet = fileManager.dataFileJson['bet']  
+      # Main data proses post
+      self.bet.update({'currency': self.currency,
+          'amount': fileManager.dataFileJson['Play Game']['Amount']})
+  
+      self.onGame = fileManager.dataFileJson['onGame']
+      self.dataPlaceBetBalanceReset = self.bet['amount']
+  
   def utilities(self):
       # Instance timer
       timer.timeCounter()
@@ -85,19 +97,10 @@ class playDice():
         interAPI.responseRefreshSeed()
         utils.sysExit()
         
-  def proccessBetData(self):
-      self.bet = fileManager.dataFileJson['bet']  
-      # Main data proses post
-      self.bet.update({'currency': self.currency,
-          'amount': fileManager.dataFileJson['Play Game']['Amount']})
-  
-      self.onGame = fileManager.dataFileJson['onGame']
-      self.dataPlaceBetBalanceReset = self.bet['amount']
-  
   def setChance(self):
       self.setChanceOn = str("{:0.4f}".format(99/float(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'])))
       self.setChanceRandom = random.randrange(int(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Min']), int(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Max']),1)
-      self.setChanceMultiRandom = str("{:0.4f}".format(99/self.setChanceRandom))
+      self.setChanceMulRandom = str("{:0.4f}".format(99/self.setChanceRandom))
   
   def initChance(self):
       initChanceOn = fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On']
@@ -108,7 +111,7 @@ class playDice():
           self.bet['bet_value'] = str("{:0.2f}".format(99.99 - float(initChanceOn)) if self.bet['rule'] == "over" else "{:0.2f}".format(float(initChanceOn)))
       
       elif initChanceRandom == "true":
-          self.bet['multiplier'] = self.setChanceMultiRandom
+          self.bet['multiplier'] = self.setChanceMulRandom
           self.bet['bet_value'] = str("{:0.2f}".format(99.99 - float(self.setChanceRandom)) if self.bet['rule'] == "over" else "{:0.2f}".format(float(self.setChanceRandom)))
   
       if self.onGame['if_lose_reset'] == "true" and self.statusWinLose == "L":
@@ -361,86 +364,89 @@ class playDice():
 
 
 #PROGRAM EKSEKUTOR -------------------->>      
+def eksekutor(data):
+  global timer, interAPI, playDice, playGame
+  #Instance Class ( Initialize )
+  #Instance Class timer
+  timer = timer()
+  timer.startTimeCounter()
+  #Instance Class
+  utils.httpAdapter()
 
-#Instance Class ( Initialize )
-#Instance Class timer
-timer = timer()
-timer.startTimeCounter()
-#Instance Class
-utils.httpAdapter()
+  interAPI = interactAPI(data)
+  interAPI.startInit()
+  interAPI.AccessInit()
+  interAPI.responseBalance()
+  interAPI.currencyCollector()
+  interAPI.responseBets()
+  interAPI.responseStatusRace()
+  interAPI.responseRefreshSeed()
+  interAPI.statusInfo()
 
-interAPI = interactAPI('data.json')
-interAPI.startInit()
-interAPI.AccessInit()
-interAPI.responseBalance()
-interAPI.currencyCollector()
-interAPI.responseBets()
-interAPI.responseStatusRace()
-interAPI.responseRefreshSeed()
-interAPI.statusInfo()
+  playGame = playDice(interAPI.currency, interAPI.headers)
+  playGame.proccessBetData() # Pengambilan data currency, amount, ongame dan bet Json
 
-playGame = playDice(interAPI.currency, interAPI.headers)
-playGame.proccessBetData()
-
-#PROGRAM EKSEKUSI BERLANJUT
-while True:
-  try:
-    def executor():
-      #Eksekutor Objek Method
-      playGame.utilities()
-      playGame.setChance()
-      playGame.initChance()
-      playGame.basebetCounter()
-      playGame.proccessPlaceBet()
-      playGame.proccessChanceCounter()
-      playGame.initWinLose()
-      playGame.ruleBetChance()
-      playGame.initChance()
-      playGame.nextbetCounter()
-      playGame.bettingBalanceCounter()
-      playGame.placeChance()
-      playGame.IsStrategy()
-      playGame.bgTextChanger()
-      playGame.csvStdOut()
-      playGame.printOut()
-    executor()
-
-  except requests.exceptions.Timeout as e:
-    utils.textShow(e)
-    playGame.conerror()
-  except (KeyError, NameError, ValueError, TypeError, IndexError, FileNotFoundError, AttributeError, IndentationError) as e:
-    if playGame.statusRiskAlert == "low":
-      utils.textShow(e)
-      playGame.conerror()
-    else:
-      utils.textShow(e)
-      playGame.conerror()
-      utils.sysExit()
-  except (ConnectionAbortedError, requests.exceptions.ConnectionError) as e:
-    print(f'\nTidak dapat terhubung, periksa koneksi internet anda error {e}')
-    playGame.conerror()
-  except ImportError as e:
-    utils.textShow(e)
-    moduleInstaller()
-    playGame.conerror()
-  except (KeyboardInterrupt, IOError) as e:
-    stop = input(f'\nPause, "y"(Lanjutkan)/"n"(Keluar): ').lower()
-    if stop == "y":
+  #PROGRAM EKSEKUSI BERLANJUT
+  while True:
+    try:
+      def executor():
+        #Eksekutor Objek Method
+        playGame.utilities() # Initial Waktu, every dan status Alert
+        playGame.setChance() 
+        playGame.initChance()
+        playGame.basebetCounter()
+        playGame.proccessPlaceBet()
+        playGame.proccessChanceCounter()
+        playGame.initWinLose()
+        playGame.ruleBetChance()
+        playGame.initChance()
+        playGame.nextbetCounter()
+        playGame.bettingBalanceCounter()
+        playGame.placeChance()
+        playGame.IsStrategy()
+        playGame.bgTextChanger()
+        playGame.csvStdOut()
+        playGame.printOut()
       executor()
-    elif stop == "n":
-      utils.sysExit()
-  except Exception as e:
-    utils.textShow(e)
-    if playGame.statusRiskAlert == "low":
+
+    except requests.exceptions.Timeout as e:
+      utils.textShow(e)
       playGame.conerror()
-    else:
-      ecp = input(f'\nTerjadi Error, tetapi Risk {playGame.statusRiskAlert} ingin melanjutkan? (Y/N): ').lower()
-      if ecp == "y":
+    except (KeyError, NameError, ValueError, TypeError, IndexError, FileNotFoundError, AttributeError, IndentationError) as e:
+      if playGame.statusRiskAlert == "low":
+        utils.textShow(e)
         playGame.conerror()
-      elif ecp == "n":
-        print(f'Keluar Program')
-        utils.sysExit()
       else:
-        print(f'Pilih ya atau tidak!')
+        utils.textShow(e)
         playGame.conerror()
         utils.sysExit()
+    except (ConnectionAbortedError, requests.exceptions.ConnectionError) as e:
+      print(f'\nTidak dapat terhubung, periksa koneksi internet anda error {e}')
+      playGame.conerror()
+    except ImportError as e:
+      utils.textShow(e)
+      moduleInstaller()
+      playGame.conerror()
+    except (KeyboardInterrupt, IOError) as e:
+      stop = input(f'\nPause, "y"(Lanjutkan)/"n"(Keluar): ').lower()
+      if stop == "y":
+        executor()
+      elif stop == "n":
+        utils.sysExit()
+    except Exception as e:
+      utils.textShow(e)
+      if playGame.statusRiskAlert == "low":
+        playGame.conerror()
+      else:
+        ecp = input(f'\nTerjadi Error, tetapi Risk {playGame.statusRiskAlert} ingin melanjutkan? (Y/N): ').lower()
+        if ecp == "y":
+          playGame.conerror()
+        elif ecp == "n":
+          print(f'Keluar Program')
+          utils.sysExit()
+        else:
+          print(f'Pilih ya atau tidak!')
+          playGame.conerror()
+          utils.sysExit()
+
+eksekutor('data.json')

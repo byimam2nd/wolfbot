@@ -7,7 +7,7 @@ class moduleInstaller:
         self.modules = [
             'asyncio', 'os', 'requests', 'json', 'sys', 'dnspython', 'random', 
             'time', 'datetime', 'requests_cache', 'threading', 'colorama', 
-            'python-telegram-bot']
+            'python-telegram-bot, rich, textual']
 
     def installModules(self):
         """Memeriksa dan menginstal modul yang belum terpasang."""
