@@ -48,10 +48,23 @@ This application is a complete refactor of an original Python-based script. The 
 3.  **Open the Dashboard:**
     Open your web browser and navigate to `http://localhost:3000`.
 
-## How to Use
+## Vercel Deployment Error Troubleshooting
 
-1.  Enter your `wolf.bet` **Access Token** in the designated input field.
-2.  Adjust the bot's **Configuration** settings as needed (e.g., currency, amount, strategy).
-3.  Click the **Start** button to begin the bot's operation.
-4.  Monitor the bot's performance using the **Live Stats** panel.
-5.  Click the **Stop** button to halt the bot at any time.
+**Problem:** The project failed to deploy on Vercel with an error related to `lightningcss.android-arm64.node` not being found. This occurred because the `pnpm-lock.yaml` file was generated on an Android environment (Termux), which included platform-specific binaries incompatible with Vercel's Linux (x64) deployment environment.
+
+**Solution:** The core issue was the mismatch between the local development environment's `pnpm-lock.yaml` and the Vercel deployment environment. To resolve this, the `pnpm-lock.yaml` needs to be generated on a Linux (x64) environment.
+
+**Steps to Resolve (to be performed by the user):**
+
+1.  **Clean Local Environment:** Delete the existing `pnpm-lock.yaml` file and the `node_modules` directory in your local `wolfbet` project folder.
+    ```bash
+    rm -rf pnpm-lock.yaml node_modules
+    ```
+
+2.  **Generate Lockfile on Linux (x64):** On a Linux (x64) environment (e.g., using Docker, Windows Subsystem for Linux (WSL), or a native Linux machine), navigate to your `wolfbet` project directory and run `pnpm install`.
+    ```bash
+    pnpm install
+    ```
+    This command will generate a new `pnpm-lock.yaml` file that is compatible with Linux (x64).
+
+3.  **Commit and Deploy:** Commit the newly generated `pnpm-lock.yaml` to your Git repository and then deploy your project to Vercel. The build process on Vercel should now succeed as the dependencies will be correctly resolved for the Linux environment.
