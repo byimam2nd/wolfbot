@@ -1,8 +1,20 @@
-# Wolfbet Bot - Next.js Dashboard
+# Wolfbot: A Full-Stack Next.js Betting Bot Dashboard
+
+## Repository
+
+This project is hosted on GitHub: [https://github.com/byimam2nd/wolfbot](https://github.com/byimam2nd/wolfbot)
 
 ## Overview
 
-This project is a full-stack web application built with Next.js that provides a user-friendly dashboard for controlling and monitoring an automated betting bot for the Dice game on the wolf.bet platform. It is a complete refactor from the original Python script, offering a modern UI and a more robust, structured backend.
+This project is a full-stack web application built with Next.js that provides a user-friendly dashboard for controlling and monitoring an automated betting bot for the Dice game on the wolf.bet platform.
+
+## Refactoring Summary
+
+This application is a complete refactor of an original Python-based script. The migration to a full-stack Next.js application provides several key advantages:
+- **Modern User Interface:** A web-based dashboard built with React and Tailwind CSS for easy control and monitoring.
+- **Structured Backend:** A robust backend with API routes to manage the bot's lifecycle and configuration.
+- **Improved Efficiency:** Type safety with TypeScript and efficient client-server communication.
+- **Enhanced User Experience:** Users can now manage the bot from any device with a web browser.
 
 ## Tech Stack
 
