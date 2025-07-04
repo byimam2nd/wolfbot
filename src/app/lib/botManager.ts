@@ -1,5 +1,4 @@
 import { PlayDice } from './wolfbet';
-import axios from 'axios';
 
 interface DataFileJson {
   bet: {
@@ -35,9 +34,9 @@ interface FileManager {
 }
 
 let botInstance: PlayDice | null = null;
-let botRunning = false;
+let botRunning: boolean = false;
 let botInterval: NodeJS.Timeout | null = null;
-let currentStats = { profit: 0, wins: 0, losses: 0, risk: 'No Risk' };
+let currentStats: { profit: number; wins: number; losses: number; risk: string; } = { profit: 0, wins: 0, losses: 0, risk: 'No Risk' };
 let config: { [key: string]: any } = {}; // Store config here
 
 const fileManager: FileManager = {
@@ -65,74 +64,88 @@ const fileManager: FileManager = {
   }
 };
 
-const getBotStatus = () => {
-    if (!botInstance) {
-        return {
-            status: botStatus,
-            profit: 0,
-            wins: 0,
-            losses: 0,
-            risk: 'No Risk',
-        };
-    }
-    return {
-        status: botStatus,
-        profit: botInstance.statusTotalProfitCounter,
-        wins: botInstance.statusTotalWin,
-        losses: botInstance.statusTotalLose,
-        risk: botInstance.getRiskAlert(),
-    };
-};
-
 async function startBot(accessToken: string, newConfig: { [key: string]: any }) {
-    if (botStatus === 'Running') {
-        return { success: false, message: 'Bot is already running.' };
+  if (botRunning) {
+    return { success: false, error: 'Bot is already running.' };
+  }
+
+  config = newConfig; // Update config
+
+  // Update fileManager with new config
+  fileManager.dataFileJson['Play Game']['Amount'] = config.amount;
+  fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = config.chanceOn;
+  fileManager.dataFileJson['Play Game']['Divider'] = config.divider;
+  fileManager.dataFileJson['onGame']['if_lose'] = config.ifLose;
+  fileManager.dataFileJson['onGame']['if_win'] = config.ifWin;
+  fileManager.dataFileJson['onGame']['if_win_reset'] = config.ifWinReset.toString();
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${accessToken}`
+  };
+
+  botInstance = new PlayDice(config.currency, headers);
+  botInstance.proccessBetData(fileManager);
+  botInstance.statusBaseBalance = parseFloat(config.amount); // Initialize base balance
+
+  botRunning = true;
+  console.log('Bot started with config:', config);
+
+  botInterval = setInterval(async () => {
+    if (!botRunning) {
+      clearInterval(botInterval!);
+      botInterval = null;
+      return;
     }
 
-    const headers = { Authorization: `Bearer ${accessToken}` };
-    botInstance = new PlayDice(config.currency, headers);
-    botConfig = config;
-    botStatus = 'Running';
+    try {
+      botInstance!.setChance(fileManager);
+      botInstance!.initChance(fileManager);
+      botInstance!.basebetCounter(fileManager);
+      await botInstance!.proccessPlaceBet();
+      botInstance!.proccessChanceCounter(fileManager);
+      botInstance!.initWinLose();
+      botInstance!.ruleBetChance();
+      botInstance!.nextbetCounter();
+      botInstance!.bettingBalanceCounter();
+      botInstance!.IsStrategy(fileManager);
+      botInstance!.logData();
 
-    // Initialize bot with data
-    // This part needs to be adapted from the original Python script's initialization
+      currentStats = {
+        profit: botInstance!.statusTotalProfitCounter,
+        wins: botInstance!.statusTotalWin,
+        losses: botInstance!.statusTotalLose,
+        risk: botInstance!.getRiskAlert(),
+      };
 
-    botInterval = setInterval(async () => {
-        if (botInstance) {
-            try {
-                // This is the main betting loop, translated from executor()
-                botInstance.utilities();
-                botInstance.setChance(botConfig);
-                botInstance.initChance(botConfig);
-                botInstance.basebetCounter(botConfig);
-                await botInstance.proccessPlaceBet();
-                botInstance.proccessChanceCounter(botConfig);
-                botInstance.initWinLose();
-                botInstance.ruleBetChance();
-                botInstance.initChance(botConfig);
-                botInstance.nextbetCounter();
-                botInstance.bettingBalanceCounter();
-                botInstance.placeChance(botConfig);
-                botInstance.IsStrategy(botConfig);
-                botInstance.logData();
-            } catch (error) {
-                console.error('Error in bot loop:', error);
-                stopBot();
-            }
-        }
-    }, 2000); // Interval between bets, can be configured
+    } catch (error) {
+      console.error('Bot error:', error);
+      stopBot();
+    }
+  }, 5000); // Run every 5 seconds
 
-    return { success: true, message: 'Bot started.' };
-};
+  return { success: true };
+}
 
-const stopBot = () => {
+function stopBot() {
+  if (botRunning) {
+    botRunning = false;
     if (botInterval) {
-        clearInterval(botInterval);
-        botInterval = null;
+      clearInterval(botInterval);
+      botInterval = null;
     }
     botInstance = null;
-    botStatus = 'Idle';
-    return { success: true, message: 'Bot stopped.' };
-};
+    console.log('Bot stopped.');
+    return { message: 'Bot stopped.' };
+  }
+  return { message: 'Bot is not running.' };
+}
 
-export { getBotStatus, startBot, stopBot };
+function getBotStatus() {
+  return {
+    status: botRunning ? 'Running' : 'Idle',
+    ...currentStats,
+  };
+}
+
+export { startBot, stopBot, getBotStatus };
