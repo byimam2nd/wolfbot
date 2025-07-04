@@ -75,7 +75,7 @@ During Vercel deployments, several ESLint and TypeScript errors were encountered
 
 -   **`no-unused-vars`:**
     -   Removed unused `request` parameters from `src/app/api/wolfbet/status/route.ts` and `src/app/api/wolfbet/stop/route.ts`.
-    -   Replaced unused variables in `catch` blocks (e.g., `_e`, `_err`) with `_` to explicitly mark them as intentionally unused, resolving warnings in `src/app/lib/wolfbet.ts` and `src/app/page.tsx`.
+    -   Replaced unused variables in `catch` blocks (e.g., `_e`, `_err`, `__`) with `_e: any` or `_err: any` to explicitly mark them as intentionally unused, resolving warnings in `src/app/lib/wolfbet.ts` and `src/app/page.tsx`.
 
 -   **`ban-ts-comment`:**
     -   Replaced `@ts-ignore` with `@ts-expect-error` in `src/app/page.tsx` and added a descriptive comment to explain the expected error, improving code clarity and maintainability.
