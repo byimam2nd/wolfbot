@@ -1,21 +1,84 @@
+interface DataFileJson {
+    bet: {
+        currency?: string;
+        amount?: string;
+        rule?: string;
+        multiplier?: string;
+        bet_value?: string;
+    };
+    'Play Game': {
+        Amount: string;
+        'Chance to Win': {
+            'Chance On': string;
+            'Chance Min': string;
+            'Chance Max': string;
+            'Last Chance Game': string;
+            'Chance Random': string;
+        };
+        Divider: string;
+    };
+    onGame: {
+        if_lose_reset: string;
+        if_win_reset: string;
+        if_lose: string;
+        if_win: string;
+    };
+    'basebet counter': string;
+    'amount counter': string;
+}
+
+interface FileManager {
+    dataFileJson: DataFileJson;
+}
+
 class PlayDice {
     // Attributes from the Python code
     currency: string;
     headers: { [key: string]: string };
-    bet: any;
-    onGame: any;
-    dataPlaceBetBalanceReset: any;
-    setChanceOn: any;
-    setChanceRandom: any;
-    setChanceMulRandom: any;
-    dataPlaceBet: any;
-    dataPlaceSetBet: any;
-    dataPlaceSetBetUser: any;
+    bet: {
+        currency?: string;
+        amount?: string;
+        rule?: string;
+        multiplier?: string;
+        bet_value?: string;
+    };
+    onGame: {
+        if_lose_reset: string;
+        if_win_reset: string;
+        if_lose: string;
+        if_win: string;
+    };
+    dataPlaceBetBalanceReset: string;
+    setChanceOn: string;
+    setChanceRandom: number;
+    setChanceMulRandom: string;
+    dataPlaceBet: {
+        bet: {
+            state: string;
+            profit: string;
+            amount: string;
+            rule: string;
+            result_value: string;
+        };
+        userBalance: {
+            amount: string;
+        };
+    };
+    dataPlaceSetBet: {
+        state: string;
+        profit: string;
+        amount: string;
+        rule: string;
+        result_value: string;
+    };
+    dataPlaceSetBetUser: {
+        amount: string;
+    };
     loseData: number[];
-    balanceCounter: any;
-    EtrCounter: any;
-    statusMultiplier: any;
-    statusToBet: any;
+    balanceCounter: number;
+    EtrCounter: number;
+    statusMultiplier: number;
+    statusToBet: number;
     riskPercentage: number;
     statusWinLose: string;
     statusTotalWin: number;
@@ -43,19 +106,43 @@ class PlayDice {
         this.currency = currency;
         this.headers = headers;
         this.bet = {};
-        this.onGame = {};
-        this.dataPlaceBetBalanceReset = {};
-        this.setChanceOn = {};
-        this.setChanceRandom = {};
-        this.setChanceMulRandom = {};
-        this.dataPlaceBet = {};
-        this.dataPlaceSetBet = {};
-        this.dataPlaceSetBetUser = {};
+        this.onGame = {
+            if_lose_reset: "false",
+            if_win_reset: "false",
+            if_lose: "0",
+            if_win: "0",
+        };
+        this.dataPlaceBetBalanceReset = "0";
+        this.setChanceOn = "0";
+        this.setChanceRandom = 0;
+        this.setChanceMulRandom = "0";
+        this.dataPlaceBet = {
+            bet: {
+                state: "",
+                profit: "0",
+                amount: "0",
+                rule: "",
+                result_value: "0",
+            },
+            userBalance: {
+                amount: "0",
+            },
+        };
+        this.dataPlaceSetBet = {
+            state: "",
+            profit: "0",
+            amount: "0",
+            rule: "",
+            result_value: "0",
+        };
+        this.dataPlaceSetBetUser = {
+            amount: "0",
+        };
         this.loseData = [];
-        this.balanceCounter = {};
-        this.EtrCounter = {};
-        this.statusMultiplier = {};
-        this.statusToBet = {};
+        this.balanceCounter = 0;
+        this.EtrCounter = 0;
+        this.statusMultiplier = 0;
+        this.statusToBet = 0;
         this.riskPercentage = 0;
         this.statusWinLose = "W";
         this.statusTotalWin = 0;
@@ -80,7 +167,7 @@ class PlayDice {
         this.statusStepStrategy = "00";
     }
 
-    proccessBetData(fileManager: any) {
+    proccessBetData(fileManager: FileManager) {
         this.bet = fileManager.dataFileJson['bet'];
         this.bet.currency = this.currency;
         this.bet.amount = fileManager.dataFileJson['Play Game']['Amount'];
@@ -92,7 +179,7 @@ class PlayDice {
         // Timer logic will be handled by the serverless function runtime
     }
 
-    setChance(fileManager: any) {
+    setChance(fileManager: FileManager) {
         this.setChanceOn = (99 / parseFloat(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'])).toFixed(4);
         const min = parseInt(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Min']);
         const max = parseInt(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Max']);
@@ -100,7 +187,7 @@ class PlayDice {
         this.setChanceMulRandom = (99 / this.setChanceRandom).toFixed(4);
     }
 
-    initChance(fileManager: any) {
+    initChance(fileManager: FileManager) {
         const initChanceOn = fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'];
         const initChanceRandom = fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Random'];
 
@@ -119,7 +206,7 @@ class PlayDice {
         }
     }
 
-    basebetCounter(fileManager: any) {
+    basebetCounter(fileManager: FileManager) {
         if (fileManager.dataFileJson['basebet counter'] === "true") {
             this.statusCurrentBaseBet = this.statusBaseBalance / parseFloat(fileManager.dataFileJson['Play Game']['Divider']);
             if (this.statusCurrentLuck > this.statusTotalLuck && (parseFloat(this.bet.amount) / parseFloat(this.dataPlaceSetBetUser.amount)) < (this.statusTotalLuck / 2 / parseFloat(fileManager.dataFileJson['Play Game']['Divider']))) {
@@ -143,7 +230,7 @@ class PlayDice {
         this.dataPlaceSetBetUser = data.userBalance;
     }
 
-    proccessChanceCounter(fileManager: any) {
+    proccessChanceCounter(fileManager: FileManager) {
         if (fileManager.dataFileJson['Play Game']['Chance to Win']['Last Chance Game'] === "true") {
             if (this.bet.rule === "over") {
                 if (99.99 - parseFloat(this.dataPlaceSetBet.result_value) > 98.00) {
@@ -231,13 +318,13 @@ class PlayDice {
         this.riskPercentage = (this.statusMaxBetting / parseFloat(this.dataPlaceSetBetUser.amount)) * 100;
     }
 
-    placeChance(fileManager: any) {
+    placeChance(fileManager: FileManager) {
         fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = this.statusCurrentChance.toString();
         this.nextbetCounter();
         this.initChance(fileManager);
     }
 
-    IsStrategy(fileManager: any) {
+    IsStrategy(fileManager: FileManager) {
         if (fileManager.dataFileJson['amount counter'] === "true" && this.onGame.if_lose === "0") {
             this.bet.rule = "under";
             if (this.statusWinLose === "W") {
@@ -277,7 +364,7 @@ class PlayDice {
                 this.placeChance(fileManager);
                 try {
                     this.statusCurrentLuck = this.statusTotalWin / this.statusTotalLose * 100;
-                } catch (e) {
+                } catch (_e) {
                     this.statusCurrentLuck = 20;
                 }
             } else if (this.statusCurrentLuck < this.statusTotalLuck && this.statusProfitPersen < this.statusLastProfitPersen) {

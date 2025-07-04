@@ -23,8 +23,8 @@ export default function Home() {
       const data = await response.json();
       setStatus(data.status);
       setStats(data);
-    } catch (err) {
-      console.error('Error fetching status:', err);
+    } catch (_err) {
+      console.error('Error fetching status:', _err);
     }
   };
 
@@ -58,7 +58,7 @@ export default function Home() {
         setError(data.error || 'Failed to start bot.');
         setStatus('Idle');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred.');
       setStatus('Idle');
     }
@@ -76,7 +76,7 @@ export default function Home() {
         setError('Failed to stop bot.');
         setStatus('Running'); // Revert status if stop fails
       }
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred.');
     }
   };
@@ -84,7 +84,7 @@ export default function Home() {
   const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const isCheckbox = type === 'checkbox';
-    // @ts-ignore
+    // @ts-expect-error
     const val = isCheckbox ? e.target.checked : value;
     setConfig(prev => ({ ...prev, [name]: val }));
   };

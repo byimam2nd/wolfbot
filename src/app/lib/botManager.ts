@@ -1,9 +1,69 @@
 import { PlayDice } from './wolfbet';
+import axios from 'axios';
+
+interface DataFileJson {
+  bet: {
+      currency?: string;
+      amount?: string;
+      rule?: string;
+      multiplier?: string;
+      bet_value?: string;
+  };
+  'Play Game': {
+      Amount: string;
+      'Chance to Win': {
+          'Chance On': string;
+          'Chance Min': string;
+          'Chance Max': string;
+          'Last Chance Game': string;
+          'Chance Random': string;
+      };
+      Divider: string;
+  };
+  onGame: {
+      if_lose_reset: string;
+      if_win_reset: string;
+      if_lose: string;
+      if_win: string;
+  };
+  'basebet counter': string;
+  'amount counter': string;
+}
+
+interface FileManager {
+  dataFileJson: DataFileJson;
+}
 
 let botInstance: PlayDice | null = null;
-let botStatus = 'Idle';
-let botConfig: any = {}; // Will hold the config from the frontend
+let botRunning = false;
 let botInterval: NodeJS.Timeout | null = null;
+let currentStats = { profit: 0, wins: 0, losses: 0, risk: 'No Risk' };
+let config: { [key: string]: any } = {}; // Store config here
+
+const fileManager: FileManager = {
+  dataFileJson: {
+    'bet': {},
+    'Play Game': {
+      'Amount': '0.0000001',
+      'Chance to Win': {
+        'Chance On': '50',
+        'Chance Min': '1',
+        'Chance Max': '99',
+        'Last Chance Game': 'false',
+        'Chance Random': 'false',
+      },
+      'Divider': '100000',
+    },
+    'onGame': {
+      'if_lose_reset': 'false',
+      'if_win_reset': 'false',
+      'if_lose': '0',
+      'if_win': '0',
+    },
+    'basebet counter': 'false',
+    'amount counter': 'false',
+  }
+};
 
 const getBotStatus = () => {
     if (!botInstance) {
@@ -24,7 +84,7 @@ const getBotStatus = () => {
     };
 };
 
-const startBot = (accessToken: string, config: any) => {
+async function startBot(accessToken: string, newConfig: { [key: string]: any }) {
     if (botStatus === 'Running') {
         return { success: false, message: 'Bot is already running.' };
     }
