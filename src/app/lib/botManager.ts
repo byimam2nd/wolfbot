@@ -33,11 +33,21 @@ interface FileManager {
   dataFileJson: DataFileJson;
 }
 
+interface BotConfig {
+  currency: string;
+  amount: string;
+  divider: string;
+  chanceOn: string;
+  ifLose: string;
+  ifWin: string;
+  ifWinReset: boolean;
+}
+
 let botInstance: PlayDice | null = null;
 let botRunning: boolean = false;
 let botInterval: NodeJS.Timeout | null = null;
 let currentStats: { profit: number; wins: number; losses: number; risk: string; } = { profit: 0, wins: 0, losses: 0, risk: 'No Risk' };
-let config: { [key: string]: any } = {}; // Store config here
+let config: BotConfig = {} as BotConfig; // Store config here
 
 const fileManager: FileManager = {
   dataFileJson: {
@@ -64,7 +74,7 @@ const fileManager: FileManager = {
   }
 };
 
-async function startBot(accessToken: string, newConfig: { [key: string]: any }) {
+async function startBot(accessToken: string, newConfig: BotConfig) {
   if (botRunning) {
     return { success: false, error: 'Bot is already running.' };
   }
