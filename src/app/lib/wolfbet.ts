@@ -364,7 +364,7 @@ class PlayDice {
                 this.placeChance(fileManager);
                 try {
                     this.statusCurrentLuck = this.statusTotalWin / this.statusTotalLose * 100;
-                } catch (_e: any) {
+                } catch (_error: unknown) {
                     this.statusCurrentLuck = 20;
                 }
             } else if (this.statusCurrentLuck < this.statusTotalLuck && this.statusProfitPersen < this.statusLastProfitPersen) {

@@ -23,8 +23,8 @@ export default function Home() {
       const data = await response.json();
       setStatus(data.status);
       setStats(data);
-    } catch (_e: any) {
-      console.error('Error fetching status:', _e);
+    } catch (_error: unknown) {
+      console.error('Error fetching status:', _error);
     }
   };
 
@@ -58,7 +58,7 @@ export default function Home() {
         setError(data.error || 'Failed to start bot.');
         setStatus('Idle');
       }
-    } catch (_e: any) {
+    } catch (_error: unknown) {
       setError('An unexpected error occurred.');
       setStatus('Idle');
     }
@@ -76,7 +76,7 @@ export default function Home() {
         setError('Failed to stop bot.');
         setStatus('Running'); // Revert status if stop fails
       }
-    } catch (_e: any) {
+    } catch (_error: unknown) {
       setError('An unexpected error occurred.');
     }
   };
