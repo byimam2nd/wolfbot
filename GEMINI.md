@@ -69,6 +69,21 @@ This application is a complete refactor of an original Python-based script. The 
 
 3.  **Commit and Deploy:** Commit the newly generated `pnpm-lock.yaml` to your Git repository and then deploy your project to Vercel. The build process on Vercel should now succeed as the dependencies will be correctly resolved for the Linux environment.
 
+## ESLint and TypeScript Error Resolution
+
+During Vercel deployments, several ESLint and TypeScript errors were encountered, preventing successful builds. These issues have been addressed as follows:
+
+-   **`no-unused-vars`:**
+    -   Removed unused `request` parameters from `src/app/api/wolfbet/status/route.ts` and `src/app/api/wolfbet/stop/route.ts`.
+    -   Replaced unused variables in `catch` blocks (e.g., `_e`, `_err`) with `_` to explicitly mark them as intentionally unused, resolving warnings in `src/app/lib/wolfbet.ts` and `src/app/page.tsx`.
+
+-   **`ban-ts-comment`:**
+    -   Replaced `@ts-ignore` with `@ts-expect-error` in `src/app/page.tsx` and added a descriptive comment to explain the expected error, improving code clarity and maintainability.
+
+-   **`no-explicit-any`:**
+    -   Introduced specific interfaces (`BotConfig`, `FileManager`, `DataFileJson`) in `src/app/lib/botManager.ts` and `src/app/lib/wolfbet.ts` to replace generic `any` types, enhancing type safety and code readability.
+    -   Updated variable types (e.g., `botRunning`, `currentStats`, `config`) in `src/app/lib/botManager.ts` to use the newly defined interfaces.
+
 ## File Transfer to VM via SSH
 
 This section documents the process of transferring files to a Virtual Machine (VM) using SSH, including common troubleshooting steps.
