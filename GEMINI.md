@@ -68,3 +68,28 @@ This application is a complete refactor of an original Python-based script. The 
     This command will generate a new `pnpm-lock.yaml` file that is compatible with Linux (x64).
 
 3.  **Commit and Deploy:** Commit the newly generated `pnpm-lock.yaml` to your Git repository and then deploy your project to Vercel. The build process on Vercel should now succeed as the dependencies will be correctly resolved for the Linux environment.
+
+## File Transfer to VM via SSH
+
+This section documents the process of transferring files to a Virtual Machine (VM) using SSH, including common troubleshooting steps.
+
+**Initial Attempt (using alias 'gs'):**
+An attempt was made to transfer the `.gemini` directory using an SSH alias `gs`.
+```bash
+scp -r /data/data/com.termux/files/home/.gemini gs:~
+```
+This failed because the alias `gs` was not resolved, indicating it was not configured in the local SSH client's configuration.
+
+**Second Attempt (using IP address):**
+The transfer was re-attempted using the public IP address `35.212.221.253`.
+```bash
+scp -r /data/data/com.termux/files/home/.gemini 35.212.221.253:~
+```
+This attempt failed with a "Permission denied (publickey)" error, indicating that the SSH client was unable to authenticate with the VM using available keys.
+
+**Successful Transfer (using SSH key and username):**
+The transfer was successful after specifying the SSH private key (`google_compute_engine`) and the username (`byimam2nd`) for authentication.
+```bash
+scp -i /data/data/com.termux/files/home/.ssh/google_compute_engine -r /data/data/com.termux/files/home/.gemini byimam2nd@35.212.221.253:~
+```
+The `.gemini` directory was successfully transferred to the home directory of the `byimam2nd` user on the VM, located at `/home/byimam2nd/.gemini` on the VM.
