@@ -20,9 +20,15 @@ export default function Home() {
 
     // Fetch available sites
     const fetchSites = async () => {
-      const sites = await getAvailableSites();
-      setAvailableSites(sites);
-      setLoadingSites(false);
+      try {
+        const sites = await getAvailableSites();
+        setAvailableSites(sites);
+      } catch (error) {
+        console.error('Error fetching available sites:', error);
+        setAvailableSites([]); // Ensure it's an empty array on error
+      } finally {
+        setLoadingSites(false);
+      }
     };
     fetchSites();
   }, []);
