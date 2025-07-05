@@ -209,12 +209,12 @@ class PlayDice {
     basebetCounter(fileManager: FileManager) {
         if (fileManager.dataFileJson['basebet counter'] === "true") {
             this.statusCurrentBaseBet = this.statusBaseBalance / parseFloat(fileManager.dataFileJson['Play Game']['Divider']);
-            if (this.statusCurrentLuck > this.statusTotalLuck && (parseFloat(this.bet.amount) / parseFloat(this.dataPlaceSetBetUser.amount)) < (this.statusTotalLuck / 2 / parseFloat(fileManager.dataFileJson['Play Game']['Divider']))) {
+            if (this.statusCurrentLuck > this.statusTotalLuck && (parseFloat(this.bet.amount || "0") / parseFloat(this.dataPlaceSetBetUser.amount || "0")) < (this.statusTotalLuck / 2 / parseFloat(fileManager.dataFileJson['Play Game']['Divider']))) {
                 this.statusCurrentBaseBet /= this.statusTotalLuck;
             } else {
                 this.statusCurrentBaseBet /= (this.statusTotalLuck / (this.statusCurrentLose + 1));
             }
-            fileManager.dataFileJson['Play Game']['Amount'] = this.statusCurrentBaseBet;
+            fileManager.dataFileJson['Play Game']['Amount'] = this.statusCurrentBaseBet.toFixed(8);
         }
     }
 
@@ -234,15 +234,15 @@ class PlayDice {
         if (fileManager.dataFileJson['Play Game']['Chance to Win']['Last Chance Game'] === "true") {
             if (this.bet.rule === "over") {
                 if (99.99 - parseFloat(this.dataPlaceSetBet.result_value) > 98.00) {
-                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = 99.99 - 98.00;
+                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = (99.99 - 98.00).toFixed(2);
                 } else {
-                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = 99.99 - parseFloat(this.dataPlaceSetBet.result_value);
+                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = (99.99 - parseFloat(this.dataPlaceSetBet.result_value)).toFixed(2);
                 }
             } else if (this.bet.rule === "under") {
                 if (parseFloat(this.dataPlaceSetBet.result_value) > 98.00) {
-                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = 98.00;
+                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = "98.00";
                 } else {
-                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = this.dataPlaceSetBet.result_value;
+                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = parseFloat(this.dataPlaceSetBet.result_value).toFixed(2);
                 }
             }
         }
@@ -293,9 +293,9 @@ class PlayDice {
 
     ruleBetChance() {
         if (this.bet.rule === "over") {
-            this.statusCurrentChanceBetting = 99.99 - parseFloat(this.bet.bet_value);
+            this.statusCurrentChanceBetting = 99.99 - parseFloat(this.bet.bet_value ?? "0");
         } else {
-            this.statusCurrentChanceBetting = parseFloat(this.bet.bet_value);
+            this.statusCurrentChanceBetting = parseFloat(this.bet.bet_value ?? "0");
         }
         if (this.dataPlaceSetBet.rule === "over") {
             this.statusResultChance = 99.99 - parseFloat(this.dataPlaceSetBet.result_value);
@@ -305,7 +305,7 @@ class PlayDice {
     }
 
     nextbetCounter() {
-        this.balanceCounter = 1 / (parseFloat(this.bet.multiplier) - 1) + 1;
+        this.balanceCounter = 1 / (parseFloat(this.bet.multiplier ?? "0") - 1) + 1;
         this.EtrCounter = (this.statusCurrentLose) / 100;
         this.statusMultiplier = this.balanceCounter + this.EtrCounter;
         this.statusToBet = parseFloat(this.dataPlaceSetBet.amount) * this.statusMultiplier;
@@ -328,12 +328,12 @@ class PlayDice {
         if (fileManager.dataFileJson['amount counter'] === "true" && this.onGame.if_lose === "0") {
             this.bet.rule = "under";
             if (this.statusWinLose === "W") {
-                this.bet.amount = this.statusCurrentBaseBet;
+                this.bet.amount = this.statusCurrentBaseBet.toFixed(8);
             } else if (this.statusCurrentLose > 1) {
                 this.bet.amount = this.statusToBet.toFixed(8);
                 this.statusCurrentChance += 3;
                 this.placeChance(fileManager);
-            } else if (parseFloat(this.bet.amount) / parseFloat(this.dataPlaceSetBetUser.amount) > (this.statusProfitPersen / 10)) {
+            } else if (parseFloat(this.bet.amount ?? "0") / parseFloat(this.dataPlaceSetBetUser.amount ?? "0") > (this.statusProfitPersen / 10)) {
                 this.statusCurrentChance = Math.floor(Math.random() * (80 - 65 + 1)) + 65;
                 this.statusStepStrategy = "00";
                 this.placeChance(fileManager);
@@ -371,7 +371,7 @@ class PlayDice {
                 this.statusCurrentChance += 15;
                 this.statusStepStrategy = "08";
                 this.placeChance(fileManager);
-            } else if (this.statusCurrentLuck >= this.statusTotalLuck && this.statusProfitPersen < this.statusLastProfitPersen && parseFloat(this.bet.amount) > (parseFloat(this.dataPlaceSetBetUser.amount) * 0.0002)) {
+            } else if (this.statusCurrentLuck >= this.statusTotalLuck && this.statusProfitPersen < this.statusLastProfitPersen && parseFloat(this.bet.amount ?? "0") > (parseFloat(this.dataPlaceSetBetUser.amount ?? "0") * 0.0002)) {
                 this.statusCurrentChance += 30;
                 this.statusStepStrategy = "09";
                 this.placeChance(fileManager);

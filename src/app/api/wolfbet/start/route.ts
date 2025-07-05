@@ -8,11 +8,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Access token is required' }, { status: 400 });
   }
 
-  const result = startBot(accessToken, config);
+  const result = await startBot(accessToken, config);
 
   if (result.success) {
-    return NextResponse.json({ message: result.message });
+    return NextResponse.json({ message: "Bot started successfully." });
   } else {
-    return NextResponse.json({ error: result.message }, { status: 500 });
+    return NextResponse.json({ error: result.error }, { status: 500 });
   }
 }

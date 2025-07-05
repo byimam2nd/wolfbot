@@ -84,6 +84,17 @@ During Vercel deployments, several ESLint and TypeScript errors were encountered
     -   Introduced specific interfaces (`BotConfig`, `FileManager`, `DataFileJson`) in `src/app/lib/botManager.ts` and `src/app/lib/wolfbet.ts` to replace generic `any` types, enhancing type safety and code readability.
     -   Updated variable types (e.g., `botRunning`, `currentStats`, `config`) in `src/app/lib/botManager.ts` to use the newly defined interfaces.
 
+## TypeScript Build Error Resolution
+
+During local development, several TypeScript build errors were encountered, preventing successful compilation. These issues have been addressed as follows:
+
+-   **`await` keyword missing:**
+    -   Added `await` to the `startBot` function call in `src/app/api/wolfbet/start/route.ts` to correctly handle the Promise return type.
+
+-   **Type `string | undefined` not assignable to type `string`:**
+    -   Used the nullish coalescing operator (`?? "0"`) with `parseFloat()` for `this.bet.amount` and `this.dataPlaceSetBetUser.amount` in `src/app/lib/wolfbet.ts` to ensure that these values are always treated as strings for calculations, preventing `undefined` from causing type errors.
+    -   Ensured that numerical results assigned to string properties (e.g., `fileManager.dataFileJson['Play Game']['Amount']`, `fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On']`, `this.bet.amount`) are converted to strings using `toFixed()` where necessary.
+
 ## File Transfer to VM via SSH
 
 This section documents the process of transferring files to a Virtual Machine (VM) using SSH, including common troubleshooting steps.
