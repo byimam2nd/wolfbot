@@ -95,6 +95,22 @@ During local development, several TypeScript build errors were encountered, prev
     -   Used the nullish coalescing operator (`?? "0"`) with `parseFloat()` for `this.bet.amount` and `this.dataPlaceSetBetUser.amount` in `src/app/lib/wolfbet.ts` to ensure that these values are always treated as strings for calculations, preventing `undefined` from causing type errors.
     -   Ensured that numerical results assigned to string properties (e.g., `fileManager.dataFileJson['Play Game']['Amount']`, `fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On']`, `this.bet.amount`) are converted to strings using `toFixed()` where necessary.
 
+## User Data Fetching
+
+To make the application production-ready by fetching user balance and other information, a new API route and corresponding frontend logic have been implemented:
+
+-   **New API Route:** `src/app/api/wolfbet/user/route.ts`
+    -   This route handles `GET` requests to a hypothetical Wolf.bet user information endpoint (`https://wolf.bet/api/v1/user`).
+    -   It requires an `accessToken` as a query parameter for authentication.
+    -   It returns the fetched user data or an error message.
+
+-   **Frontend Integration:** `src/app/page.tsx`
+    -   A new `userData` state variable has been added to store the fetched user information.
+    -   A `fetchUserData` function has been implemented to call the new `/api/wolfbet/user` route.
+    -   This function is triggered by changes in the `accessToken` state using a `useEffect` hook.
+    -   The fetched user data (username, balance, currency) is now displayed on the dashboard.
+    -   A `UserData` interface was defined to ensure type safety for the user data.
+
 ## File Transfer to VM via SSH
 
 This section documents the process of transferring files to a Virtual Machine (VM) using SSH, including common troubleshooting steps.

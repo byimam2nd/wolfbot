@@ -2,9 +2,16 @@
 
 import { useState, useEffect } from 'react';
 
+interface UserData {
+  username: string;
+  balance: number;
+  currency: string;
+}
+
 export default function Home() {
   const [accessToken, setAccessToken] = useState('');
   const [status, setStatus] = useState('Idle');
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [error, setError] = useState('');
   const [stats, setStats] = useState({ profit: 0, wins: 0, losses: 0, risk: 'No Risk' });
   const [config, setConfig] = useState({
@@ -28,6 +35,23 @@ export default function Home() {
     }
   };
 
+  const fetchUserData = async (token: string) => {
+    try {
+      const response = await fetch(`/api/wolfbet/user?accessToken=${token}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUserData(data);
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to fetch user data.');
+        setUserData(null);
+      }
+    } catch (_: unknown) {
+      setError('An unexpected error occurred while fetching user data.');
+      setUserData(null);
+    }
+  };
+
   useEffect(() => {
     const interval = setInterval(() => {
       if (status === 'Running') {
@@ -36,6 +60,14 @@ export default function Home() {
     }, 2000);
     return () => clearInterval(interval);
   }, [status]);
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchUserData(accessToken);
+    } else {
+      setUserData(null);
+    }
+  }, [accessToken]);
 
   const handleStart = async () => {
     if (!accessToken) {
@@ -116,6 +148,22 @@ export default function Home() {
               {error && <p className="text-red-500 mt-2">{error}</p>}
             </div>
           </div>
+
+          {userData && (
+            <div className="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h2 className="text-2xl font-semibold mb-4">User Information</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-gray-400">Username</p>
+                  <p className="text-xl font-bold">{userData.username}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400">Balance</p>
+                  <p className="text-xl font-bold">{userData.balance?.toFixed(8)} {userData.currency}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-lg">
             <h2 className="text-2xl font-semibold mb-4">Configuration</h2>
