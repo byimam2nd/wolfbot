@@ -111,6 +111,14 @@ To make the application production-ready by fetching user balance and other info
     -   The fetched user data (username, balance, currency) is now displayed on the dashboard.
     -   A `UserData` interface was defined to ensure type safety for the user data.
 
+## Access Token Persistence
+
+To improve user experience, the access token is now persisted in the browser's `localStorage`:
+
+-   The `accessToken` state in `src/app/page.tsx` is initialized by attempting to retrieve the token from `localStorage`.
+-   Whenever the `accessToken` changes, it is saved to `localStorage`.
+-   If the `accessToken` is cleared, it is also removed from `localStorage`.
+
 ## File Transfer to VM via SSH
 
 This section documents the process of transferring files to a Virtual Machine (VM) using SSH, including common troubleshooting steps.

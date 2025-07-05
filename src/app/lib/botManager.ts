@@ -1,143 +1,76 @@
-import { PlayDice } from './wolfbet';
-
-interface DataFileJson {
-  bet: {
-      currency?: string;
-      amount?: string;
-      rule?: string;
-      multiplier?: string;
-      bet_value?: string;
-  };
-  'Play Game': {
-      Amount: string;
-      'Chance to Win': {
-          'Chance On': string;
-          'Chance Min': string;
-          'Chance Max': string;
-          'Last Chance Game': string;
-          'Chance Random': string;
-      };
-      Divider: string;
-  };
-  onGame: {
-      if_lose_reset: string;
-      if_win_reset: string;
-      if_lose: string;
-      if_win: string;
-  };
-  'basebet counter': string;
-  'amount counter': string;
-}
-
-interface FileManager {
-  dataFileJson: DataFileJson;
-}
-
-interface BotConfig {
-  currency: string;
-  amount: string;
-  divider: string;
-  chanceOn: string;
-  ifLose: string;
-  ifWin: string;
-  ifWinReset: boolean;
-}
+import { PlayDice, BettingConfig } from './wolfbet';
+import { siteManager } from './sites/siteManager';
+import { logger } from './logger';
 
 let botInstance: PlayDice | null = null;
 let botRunning: boolean = false;
 let botInterval: NodeJS.Timeout | null = null;
-let currentStats: { profit: number; wins: number; losses: number; risk: string; } = { profit: 0, wins: 0, losses: 0, risk: 'No Risk' };
-let config: BotConfig = {} as BotConfig; // Store config here
+let currentStats: ReturnType<PlayDice['getStats']> | null = null;
 
-const fileManager: FileManager = {
-  dataFileJson: {
-    'bet': {},
-    'Play Game': {
-      'Amount': '0.0000001',
-      'Chance to Win': {
-        'Chance On': '50',
-        'Chance Min': '1',
-        'Chance Max': '99',
-        'Last Chance Game': 'false',
-        'Chance Random': 'false',
-      },
-      'Divider': '100000',
-    },
-    'onGame': {
-      'if_lose_reset': 'false',
-      'if_win_reset': 'false',
-      'if_lose': '0',
-      'if_win': '0',
-    },
-    'basebet counter': 'false',
-    'amount counter': 'false',
-  }
-};
-
-async function startBot(accessToken: string, newConfig: BotConfig) {
+export async function startBot(siteName: string, apiKey: string, config: BettingConfig) {
   if (botRunning) {
+    logger.warn('Attempted to start bot, but it is already running.');
     return { success: false, error: 'Bot is already running.' };
   }
 
-  config = newConfig; // Update config
+  const site = siteManager.getSite(siteName);
+  if (!site) {
+    logger.error(`Dice site not found: ${siteName}`);
+    return { success: false, error: 'Dice site not found.' };
+  }
 
-  // Update fileManager with new config
-  fileManager.dataFileJson['Play Game']['Amount'] = config.amount;
-  fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = config.chanceOn;
-  fileManager.dataFileJson['Play Game']['Divider'] = config.divider;
-  fileManager.dataFileJson['onGame']['if_lose'] = config.ifLose;
-  fileManager.dataFileJson['onGame']['if_win'] = config.ifWin;
-  fileManager.dataFileJson['onGame']['if_win_reset'] = config.ifWinReset.toString();
+  // Perform initial login and get balance
+  logger.info(`Attempting to log in to ${siteName} and get balance...`);
+  const loginSuccess = await site.login(apiKey);
+  if (!loginSuccess) {
+    logger.error('Failed to log in to dice site. Invalid API key or site down.');
+    return { success: false, error: 'Failed to log in to dice site. Invalid API key or site down.' };
+  }
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${accessToken}`
-  };
+  const initialBalance = await site.getBalance(apiKey);
+  if (initialBalance === 0) {
+    logger.error('Could not retrieve initial balance. Check API key or site status.');
+    return { success: false, error: 'Could not retrieve initial balance. Check API key or site status.' };
+  }
 
-  botInstance = new PlayDice(config.currency, headers);
-  botInstance.proccessBetData(fileManager);
-  botInstance.statusBaseBalance = parseFloat(config.amount); // Initialize base balance
+  // Assuming currency and headers are still needed for PlayDice, though they should be refactored into DiceSite
+  const currency = 'USD'; // Placeholder, should come from site or config
+  const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
 
+  botInstance = new PlayDice(site, config, initialBalance);
   botRunning = true;
-  console.log('Bot started with config:', config);
+  logger.info('Bot started with config:', config);
 
   botInterval = setInterval(async () => {
     if (!botRunning) {
       clearInterval(botInterval!);
       botInterval = null;
+      logger.info('Bot interval cleared as bot is no longer running.');
       return;
     }
 
     try {
-      botInstance!.setChance(fileManager);
-      botInstance!.initChance(fileManager);
-      botInstance!.basebetCounter(fileManager);
-      await botInstance!.proccessPlaceBet();
-      botInstance!.proccessChanceCounter(fileManager);
-      botInstance!.initWinLose();
-      botInstance!.ruleBetChance();
-      botInstance!.nextbetCounter();
-      botInstance!.bettingBalanceCounter();
-      botInstance!.IsStrategy(fileManager);
-      botInstance!.logData();
+      const betResult = await botInstance!.placeBet(apiKey);
 
-      currentStats = {
-        profit: botInstance!.statusTotalProfitCounter,
-        wins: botInstance!.statusTotalWin,
-        losses: botInstance!.statusTotalLose,
-        risk: botInstance!.getRiskAlert(),
-      };
+      if (betResult.message) {
+        logger.info(betResult.message);
+        stopBot(); // Stop if a stop condition is met
+      }
 
-    } catch (error) {
-      console.error('Bot error:', error);
+      currentStats = botInstance!.getStats();
+      logger.debug('Current Stats:', currentStats);
+
+    } catch (error: any) {
+      logger.error('Bot error:', error);
       stopBot();
+      currentStats = { ...currentStats, error: error.message }; // Add error to stats
     }
-  }, 5000); // Run every 5 seconds
+  }, 1000); // Run every 1 second for faster simulation
 
   return { success: true };
 }
 
-function stopBot() {
+export function stopBot() {
   if (botRunning) {
     botRunning = false;
     if (botInterval) {
@@ -145,17 +78,16 @@ function stopBot() {
       botInterval = null;
     }
     botInstance = null;
-    console.log('Bot stopped.');
+    logger.info('Bot stopped.');
     return { message: 'Bot stopped.' };
   }
+  logger.info('Attempted to stop bot, but it was not running.');
   return { message: 'Bot is not running.' };
 }
 
-function getBotStatus() {
+export function getBotStatus() {
   return {
     status: botRunning ? 'Running' : 'Idle',
-    ...currentStats,
+    stats: currentStats,
   };
 }
-
-export { startBot, stopBot, getBotStatus };

@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 import { startBot } from '@/app/lib/botManager';
+import { BettingConfig } from '@/app/lib/wolfbet';
 
 export async function POST(request: Request) {
-  const { accessToken, config } = await request.json();
+  const { siteName, apiKey, config }: { siteName: string; apiKey: string; config: BettingConfig } = await request.json();
 
-  if (!accessToken) {
-    return NextResponse.json({ error: 'Access token is required' }, { status: 400 });
+  if (!siteName || !apiKey || !config) {
+    return NextResponse.json({ error: 'Missing siteName, apiKey, or config' }, { status: 400 });
   }
 
-  const result = await startBot(accessToken, config);
+  const result = await startBot(siteName, apiKey, config);
 
   if (result.success) {
     return NextResponse.json({ message: "Bot started successfully." });

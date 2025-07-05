@@ -1,413 +1,225 @@
-interface DataFileJson {
-    bet: {
-        currency?: string;
-        amount?: string;
-        rule?: string;
-        multiplier?: string;
-        bet_value?: string;
-    };
-    'Play Game': {
-        Amount: string;
-        'Chance to Win': {
-            'Chance On': string;
-            'Chance Min': string;
-            'Chance Max': string;
-            'Last Chance Game': string;
-            'Chance Random': string;
-        };
-        Divider: string;
-    };
-    onGame: {
-        if_lose_reset: string;
-        if_win_reset: string;
-        if_lose: string;
-        if_win: string;
-    };
-    'basebet counter': string;
-    'amount counter': string;
-}
+import { DiceSite } from './sites/DiceSite';
+import { logger } from '../app/lib/logger';
+import { getDb } from '../lib/db';
 
-interface FileManager {
-    dataFileJson: DataFileJson;
+// New interface for betting configuration
+export interface BettingConfig {
+  baseBet: number;
+  payoutMultiplier: number;
+  stopOnWin: number; // Target profit to stop
+  stopOnLoss: number; // Max loss to stop
+  increaseOnWin: {
+    type: 'none' | 'percentage' | 'fixed';
+    value: number;
+    resetBaseBet: boolean;
+  };
+  increaseOnLoss: {
+    type: 'none' | 'percentage' | 'fixed';
+    value: number;
+    resetBaseBet: boolean;
+  };
+  betRule: 'over' | 'under';
+  betChance: number;
+  clientSeed: string;
+  serverSeed: string; // This might be managed by the site API
 }
 
 class PlayDice {
-    // Attributes from the Python code
-    currency: string;
-    headers: { [key: string]: string };
-    bet: {
-        currency?: string;
-        amount?: string;
-        rule?: string;
-        multiplier?: string;
-        bet_value?: string;
+  private site: DiceSite; // The specific dice site instance
+  private config: BettingConfig;
+  private currentBetAmount: number;
+  private currentProfit: number;
+  private totalBets: number;
+  private wins: number;
+  private losses: number;
+  private winStreak: number;
+  private lossStreak: number;
+  private maxWinStreak: number;
+  private maxLossStreak: number;
+  private initialBalance: number; // To calculate profit/loss percentage
+  private currentBalance: number; // Current balance after bets
+
+  constructor(site: DiceSite, config: BettingConfig, initialBalance: number) {
+    this.site = site;
+    this.config = config;
+    this.initialBalance = initialBalance;
+    this.currentBalance = initialBalance;
+
+    // Initialize betting state
+    this.currentBetAmount = config.baseBet;
+    this.currentProfit = 0;
+    this.totalBets = 0;
+    this.wins = 0;
+    this.losses = 0;
+    this.winStreak = 0;
+    this.lossStreak = 0;
+    this.maxWinStreak = 0;
+    this.maxLossStreak = 0;
+
+    logger.info('PlayDice instance created.');
+  }
+
+  // Place a single bet
+  async placeBet(apiKey: string, strategyName: string = 'Manual'): Promise<{ success: boolean; message?: string; betResult?: any }> {
+    this.totalBets++;
+    logger.debug(`Placing bet #${this.totalBets} with amount: ${this.currentBetAmount.toFixed(8)}`);
+
+    const balanceBeforeBet = this.currentBalance;
+
+    // Use the actual site's placeBet method
+    let success, win, profit;
+    try {
+      const result = await this.site.placeBet(
+        apiKey,
+        this.currentBetAmount,
+        this.config.betRule,
+        this.config.betChance,
+        this.config.clientSeed,
+        this.config.serverSeed
+      );
+      success = result.success;
+      win = result.win;
+      profit = result.profit;
+    } catch (error: any) {
+      logger.error(`Error placing bet on site: ${error.message}`);
+      return { success: false, message: 'Failed to place bet on site.' };
+    }
+
+    if (!success) {
+      return { success: false, message: 'Failed to place bet on site.' };
+    }
+
+    this.currentProfit += profit;
+    this.currentBalance += profit;
+
+    if (win) {
+      this.wins++;
+      this.winStreak++;
+      this.lossStreak = 0;
+      if (this.winStreak > this.maxWinStreak) {
+        this.maxWinStreak = this.winStreak;
+      }
+      logger.info(`Bet #${this.totalBets}: WIN! Profit: ${profit.toFixed(8)}. Current Profit: ${this.currentProfit.toFixed(8)}`);
+      // Apply increase on win logic
+      if (this.config.increaseOnWin.type === 'percentage') {
+        this.currentBetAmount *= (1 + this.config.increaseOnWin.value / 100);
+        logger.debug(`Increased bet by ${this.config.increaseOnWin.value}% to ${this.currentBetAmount.toFixed(8)}`);
+      } else if (this.config.increaseOnWin.type === 'fixed') {
+        this.currentBetAmount += this.config.increaseOnWin.value;
+        logger.debug(`Increased bet by fixed ${this.config.increaseOnWin.value} to ${this.currentBetAmount.toFixed(8)}`);
+      }
+      if (this.config.increaseOnWin.resetBaseBet) {
+        this.currentBetAmount = this.config.baseBet;
+        logger.debug(`Reset bet to baseBet: ${this.currentBetAmount.toFixed(8)}`);
+      }
+    } else {
+      this.losses++;
+      this.lossStreak++;
+      this.winStreak = 0;
+      if (this.lossStreak > this.maxLossStreak) {
+        this.maxLossStreak = this.lossStreak;
+      }
+      logger.info(`Bet #${this.totalBets}: LOSS! Loss: ${profit.toFixed(8)}. Current Profit: ${this.currentProfit.toFixed(8)}`);
+      // Apply increase on loss logic
+      if (this.config.increaseOnLoss.type === 'percentage') {
+        this.currentBetAmount *= (1 + this.config.increaseOnLoss.value / 100);
+        logger.debug(`Increased bet by ${this.config.increaseOnLoss.value}% to ${this.currentBetAmount.toFixed(8)}`);
+      } else if (this.config.increaseOnLoss.type === 'fixed') {
+        this.currentBetAmount += this.config.increaseOnLoss.value;
+        logger.debug(`Increased bet by fixed ${this.config.increaseOnLoss.value} to ${this.currentBetAmount.toFixed(8)}`);
+      }
+      if (this.config.increaseOnLoss.resetBaseBet) {
+        this.currentBetAmount = this.config.baseBet;
+        logger.debug(`Reset bet to baseBet: ${this.currentBetAmount.toFixed(8)}`);
+      }
+    }
+
+    // Record bet to database
+    this.recordBet({
+      site: this.site.name,
+      amount: this.currentBetAmount,
+      payout: this.config.payoutMultiplier,
+      win: win,
+      profit: profit,
+      strategy_name: strategyName,
+      bet_parameters: JSON.stringify(this.config),
+      balance_before_bet: balanceBeforeBet,
+      balance_after_bet: this.currentBalance,
+      client_seed_used: this.config.clientSeed,
+      server_seed_used: this.config.serverSeed,
+    });
+
+    // Check stop conditions
+    if (this.config.stopOnWin > 0 && this.currentProfit >= this.config.stopOnWin) {
+      logger.info(`Target profit reached: ${this.currentProfit.toFixed(8)} >= ${this.config.stopOnWin.toFixed(8)}`);
+      return { success: true, message: 'Target profit reached.', betResult: { win, profit } };
+    }
+    if (this.config.stopOnLoss > 0 && this.currentProfit <= -this.config.stopOnLoss) {
+      logger.warn(`Stop loss reached: ${this.currentProfit.toFixed(8)} <= -${this.config.stopOnLoss.toFixed(8)}`);
+      return { success: true, message: 'Stop loss reached.', betResult: { win, profit } };
+    }
+
+    return { success: true, betResult: { win, profit } };
+  }
+
+  // Get current betting statistics
+  getStats() {
+    return {
+      currentBetAmount: this.currentBetAmount,
+      currentProfit: this.currentProfit,
+      totalBets: this.totalBets,
+      wins: this.wins,
+      losses: this.losses,
+      winStreak: this.winStreak,
+      lossStreak: this.lossStreak,
+      maxWinStreak: this.maxWinStreak,
+      maxLossStreak: this.maxLossStreak,
+      initialBalance: this.initialBalance,
+      currentBalance: this.currentBalance,
+      profitPercentage: (this.initialBalance > 0) ? (this.currentProfit / this.initialBalance) * 100 : 0,
     };
-    onGame: {
-        if_lose_reset: string;
-        if_win_reset: string;
-        if_lose: string;
-        if_win: string;
-    };
-    dataPlaceBetBalanceReset: string;
-    setChanceOn: string;
-    setChanceRandom: number;
-    setChanceMulRandom: string;
-    dataPlaceBet: {
-        bet: {
-            state: string;
-            profit: string;
-            amount: string;
-            rule: string;
-            result_value: string;
-        };
-        userBalance: {
-            amount: string;
-        };
-    };
-    dataPlaceSetBet: {
-        state: string;
-        profit: string;
-        amount: string;
-        rule: string;
-        result_value: string;
-    };
-    dataPlaceSetBetUser: {
-        amount: string;
-    };
-    loseData: number[];
-    balanceCounter: number;
-    EtrCounter: number;
-    statusMultiplier: number;
-    statusToBet: number;
-    riskPercentage: number;
-    statusWinLose: string;
-    statusTotalWin: number;
-    statusTotalLose: number;
-    statusHigherLose: number;
-    statusRiskAlert: string;
-    statusTotalLuck: number;
-    statusCurrentLuck: number;
-    statusCurrentBaseBet: number;
-    statusBaseBalance: number;
-    statusCurrentLose: number;
-    statusCurrentWin: number;
-    statusHigherWin: number;
-    statusMaxLosing: number;
-    statusTotalProfitCounter: number;
-    statusProfitPersen: number;
-    statusLastProfitPersen: number;
-    statusCurrentChanceBetting: number;
-    statusResultChance: number;
-    statusMaxBetting: number;
-    statusCurrentChance: number;
-    statusStepStrategy: string;
+  }
 
-    constructor(currency: string, headers: { [key: string]: string }) {
-        this.currency = currency;
-        this.headers = headers;
-        this.bet = {};
-        this.onGame = {
-            if_lose_reset: "false",
-            if_win_reset: "false",
-            if_lose: "0",
-            if_win: "0",
-        };
-        this.dataPlaceBetBalanceReset = "0";
-        this.setChanceOn = "0";
-        this.setChanceRandom = 0;
-        this.setChanceMulRandom = "0";
-        this.dataPlaceBet = {
-            bet: {
-                state: "",
-                profit: "0",
-                amount: "0",
-                rule: "",
-                result_value: "0",
-            },
-            userBalance: {
-                amount: "0",
-            },
-        };
-        this.dataPlaceSetBet = {
-            state: "",
-            profit: "0",
-            amount: "0",
-            rule: "",
-            result_value: "0",
-        };
-        this.dataPlaceSetBetUser = {
-            amount: "0",
-        };
-        this.loseData = [];
-        this.balanceCounter = 0;
-        this.EtrCounter = 0;
-        this.statusMultiplier = 0;
-        this.statusToBet = 0;
-        this.riskPercentage = 0;
-        this.statusWinLose = "W";
-        this.statusTotalWin = 0;
-        this.statusTotalLose = 0;
-        this.statusHigherLose = 0;
-        this.statusRiskAlert = "";
-        this.statusTotalLuck = 60;
-        this.statusCurrentLuck = this.statusTotalLuck;
-        this.statusCurrentBaseBet = 0;
-        this.statusBaseBalance = 0; // Will be initialized later
-        this.statusCurrentLose = 0;
-        this.statusCurrentWin = 0;
-        this.statusHigherWin = 0;
-        this.statusMaxLosing = 0;
-        this.statusTotalProfitCounter = 0;
-        this.statusProfitPersen = 0;
-        this.statusLastProfitPersen = 0;
-        this.statusCurrentChanceBetting = 0;
-        this.statusResultChance = 0;
-        this.statusMaxBetting = 0;
-        this.statusCurrentChance = 0;
-        this.statusStepStrategy = "00";
+  private recordBet(betData: {
+    site: string;
+    amount: number;
+    payout: number;
+    win: boolean;
+    profit: number;
+    strategy_name: string;
+    bet_parameters: string;
+    balance_before_bet: number;
+    balance_after_bet: number;
+    client_seed_used: string;
+    server_seed_used: string;
+  }) {
+    try {
+      const db = getDb();
+      const stmt = db.prepare(`
+        INSERT INTO bets (
+          site, amount, payout, win, profit, timestamp,
+          strategy_name, bet_parameters, balance_before_bet, balance_after_bet,
+          client_seed_used, server_seed_used
+        ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(
+        betData.site,
+        betData.amount,
+        betData.payout,
+        betData.win ? 1 : 0, // SQLite stores BOOLEAN as INTEGER (0 or 1)
+        betData.profit,
+        betData.strategy_name,
+        betData.bet_parameters,
+        betData.balance_before_bet,
+        betData.balance_after_bet,
+        betData.client_seed_used,
+        betData.server_seed_used
+      );
+      logger.info('Bet recorded to database.');
+    } catch (error: any) {
+      logger.error(`Failed to record bet to database: ${error.message}`);
     }
-
-    proccessBetData(fileManager: FileManager) {
-        this.bet = fileManager.dataFileJson['bet'];
-        this.bet.currency = this.currency;
-        this.bet.amount = fileManager.dataFileJson['Play Game']['Amount'];
-        this.onGame = fileManager.dataFileJson['onGame'];
-        this.dataPlaceBetBalanceReset = this.bet.amount;
-    }
-
-    utilities() {
-        // Timer logic will be handled by the serverless function runtime
-    }
-
-    setChance(fileManager: FileManager) {
-        this.setChanceOn = (99 / parseFloat(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'])).toFixed(4);
-        const min = parseInt(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Min']);
-        const max = parseInt(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Max']);
-        this.setChanceRandom = Math.floor(Math.random() * (max - min + 1)) + min;
-        this.setChanceMulRandom = (99 / this.setChanceRandom).toFixed(4);
-    }
-
-    initChance(fileManager: FileManager) {
-        const initChanceOn = fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'];
-        const initChanceRandom = fileManager.dataFileJson['Play Game']['Chance to Win']['Chance Random'];
-
-        if (initChanceOn !== "0" && initChanceRandom === "false") {
-            this.bet.multiplier = this.setChanceOn;
-            this.bet.bet_value = (this.bet.rule === "over" ? 99.99 - parseFloat(initChanceOn) : parseFloat(initChanceOn)).toFixed(2);
-        } else if (initChanceRandom === "true") {
-            this.bet.multiplier = this.setChanceMulRandom;
-            this.bet.bet_value = (this.bet.rule === "over" ? 99.99 - this.setChanceRandom : this.setChanceRandom).toFixed(2);
-        }
-
-        if (this.onGame.if_lose_reset === "true" && this.statusWinLose === "L") {
-            this.bet.amount = this.dataPlaceBetBalanceReset;
-        } else if (this.onGame.if_win_reset === "true" && this.statusWinLose === "W") {
-            this.bet.amount = this.dataPlaceBetBalanceReset;
-        }
-    }
-
-    basebetCounter(fileManager: FileManager) {
-        if (fileManager.dataFileJson['basebet counter'] === "true") {
-            this.statusCurrentBaseBet = this.statusBaseBalance / parseFloat(fileManager.dataFileJson['Play Game']['Divider']);
-            if (this.statusCurrentLuck > this.statusTotalLuck && (parseFloat(this.bet.amount || "0") / parseFloat(this.dataPlaceSetBetUser.amount || "0")) < (this.statusTotalLuck / 2 / parseFloat(fileManager.dataFileJson['Play Game']['Divider']))) {
-                this.statusCurrentBaseBet /= this.statusTotalLuck;
-            } else {
-                this.statusCurrentBaseBet /= (this.statusTotalLuck / (this.statusCurrentLose + 1));
-            }
-            fileManager.dataFileJson['Play Game']['Amount'] = this.statusCurrentBaseBet.toFixed(8);
-        }
-    }
-
-    async proccessPlaceBet() {
-        const response = await fetch('https://wolf.bet/api/v1/bet/place', {
-            method: 'POST',
-            headers: this.headers,
-            body: JSON.stringify(this.bet),
-        });
-        const data = await response.json();
-        this.dataPlaceBet = data;
-        this.dataPlaceSetBet = data.bet;
-        this.dataPlaceSetBetUser = data.userBalance;
-    }
-
-    proccessChanceCounter(fileManager: FileManager) {
-        if (fileManager.dataFileJson['Play Game']['Chance to Win']['Last Chance Game'] === "true") {
-            if (this.bet.rule === "over") {
-                if (99.99 - parseFloat(this.dataPlaceSetBet.result_value) > 98.00) {
-                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = (99.99 - 98.00).toFixed(2);
-                } else {
-                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = (99.99 - parseFloat(this.dataPlaceSetBet.result_value)).toFixed(2);
-                }
-            } else if (this.bet.rule === "under") {
-                if (parseFloat(this.dataPlaceSetBet.result_value) > 98.00) {
-                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = "98.00";
-                } else {
-                    fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = parseFloat(this.dataPlaceSetBet.result_value).toFixed(2);
-                }
-            }
-        }
-    }
-
-    initWinLose() {
-        if (this.dataPlaceSetBet.state === "win") {
-            this.loseData = [];
-            this.statusWinLose = "W";
-            this.statusTotalWin++;
-            this.statusCurrentLose = 0;
-            if (this.statusTotalWin > this.statusHigherWin) {
-                this.statusHigherWin = this.statusTotalWin;
-            }
-        } else {
-            this.loseData.push(Math.abs(parseFloat(this.dataPlaceSetBet.profit)));
-            this.statusWinLose = "L";
-            this.statusCurrentLose++;
-            this.statusTotalLose++;
-            this.statusTotalWin = 0;
-            if (this.statusCurrentLose > this.statusHigherLose) {
-                this.statusHigherLose = this.statusCurrentLose;
-            }
-        }
-        const sumLoseData = this.loseData.reduce((a, b) => a + b, 0);
-        if (sumLoseData > this.statusMaxLosing) {
-            this.statusMaxLosing = sumLoseData;
-        }
-
-        if (this.onGame.if_lose !== "0") {
-            this.bet.amount = (parseFloat(this.dataPlaceSetBet.amount) * parseFloat(this.onGame.if_lose)).toString();
-        }
-        if (this.onGame.if_win !== "0") {
-            this.bet.amount = (parseFloat(this.dataPlaceSetBet.amount) * parseFloat(this.onGame.if_win)).toString();
-        }
-
-        if (this.statusWinLose === 'W') {
-            this.statusTotalProfitCounter += Math.abs(parseFloat(this.dataPlaceSetBet.profit));
-        } else if (this.statusWinLose === 'L') {
-            this.statusTotalProfitCounter -= Math.abs(parseFloat(this.dataPlaceSetBet.profit));
-        }
-
-        this.statusProfitPersen = Math.abs(this.statusTotalProfitCounter / this.statusBaseBalance * 100);
-        if (this.statusProfitPersen > this.statusLastProfitPersen && this.statusWinLose === "W") {
-            this.statusLastProfitPersen = this.statusProfitPersen;
-        }
-    }
-
-    ruleBetChance() {
-        if (this.bet.rule === "over") {
-            this.statusCurrentChanceBetting = 99.99 - parseFloat(this.bet.bet_value ?? "0");
-        } else {
-            this.statusCurrentChanceBetting = parseFloat(this.bet.bet_value ?? "0");
-        }
-        if (this.dataPlaceSetBet.rule === "over") {
-            this.statusResultChance = 99.99 - parseFloat(this.dataPlaceSetBet.result_value);
-        } else {
-            this.statusResultChance = parseFloat(this.dataPlaceSetBet.result_value);
-        }
-    }
-
-    nextbetCounter() {
-        this.balanceCounter = 1 / (parseFloat(this.bet.multiplier ?? "0") - 1) + 1;
-        this.EtrCounter = (this.statusCurrentLose) / 100;
-        this.statusMultiplier = this.balanceCounter + this.EtrCounter;
-        this.statusToBet = parseFloat(this.dataPlaceSetBet.amount) * this.statusMultiplier;
-    }
-
-    bettingBalanceCounter() {
-        if (this.statusToBet > this.statusMaxBetting) {
-            this.statusMaxBetting = this.statusToBet;
-        }
-        this.riskPercentage = (this.statusMaxBetting / parseFloat(this.dataPlaceSetBetUser.amount)) * 100;
-    }
-
-    placeChance(fileManager: FileManager) {
-        fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = this.statusCurrentChance.toString();
-        this.nextbetCounter();
-        this.initChance(fileManager);
-    }
-
-    IsStrategy(fileManager: FileManager) {
-        if (fileManager.dataFileJson['amount counter'] === "true" && this.onGame.if_lose === "0") {
-            this.bet.rule = "under";
-            if (this.statusWinLose === "W") {
-                this.bet.amount = this.statusCurrentBaseBet.toFixed(8);
-            } else if (this.statusCurrentLose > 1) {
-                this.bet.amount = this.statusToBet.toFixed(8);
-                this.statusCurrentChance += 3;
-                this.placeChance(fileManager);
-            } else if (parseFloat(this.bet.amount ?? "0") / parseFloat(this.dataPlaceSetBetUser.amount ?? "0") > (this.statusProfitPersen / 10)) {
-                this.statusCurrentChance = Math.floor(Math.random() * (80 - 65 + 1)) + 65;
-                this.statusStepStrategy = "00";
-                this.placeChance(fileManager);
-            }
-
-            const lossChanceMapping: { [key: number]: number } = {
-                0: 4,
-                2: 8,
-                4: 12,
-                8: 16
-            };
-
-            if (this.statusCurrentLose in lossChanceMapping) {
-                this.statusCurrentChance = lossChanceMapping[this.statusCurrentLose];
-                this.statusStepStrategy = this.statusCurrentLose.toString().padStart(2, '0');
-                this.placeChance(fileManager);
-            } else if (this.statusCurrentLose > 10 && this.statusCurrentLose < 12) {
-                this.statusCurrentChance += 8;
-                this.statusStepStrategy = "05";
-                this.placeChance(fileManager);
-            } else if (this.statusCurrentLose > 14) {
-                this.statusCurrentChance += 12;
-                this.statusStepStrategy = "06";
-                this.placeChance(fileManager);
-            } else if (this.statusProfitPersen < this.statusLastProfitPersen || this.statusCurrentLose >= this.statusHigherLose / 2) {
-                this.statusCurrentChance += 6;
-                this.statusStepStrategy = "07";
-                this.placeChance(fileManager);
-                try {
-                    this.statusCurrentLuck = this.statusTotalWin / this.statusTotalLose * 100;
-                } catch (_: unknown) {
-                    this.statusCurrentLuck = 20;
-                }
-            } else if (this.statusCurrentLuck < this.statusTotalLuck && this.statusProfitPersen < this.statusLastProfitPersen) {
-                this.statusCurrentChance += 15;
-                this.statusStepStrategy = "08";
-                this.placeChance(fileManager);
-            } else if (this.statusCurrentLuck >= this.statusTotalLuck && this.statusProfitPersen < this.statusLastProfitPersen && parseFloat(this.bet.amount ?? "0") > (parseFloat(this.dataPlaceSetBetUser.amount ?? "0") * 0.0002)) {
-                this.statusCurrentChance += 30;
-                this.statusStepStrategy = "09";
-                this.placeChance(fileManager);
-            }
-        }
-
-        if (parseFloat(fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On']) >= 75) {
-            fileManager.dataFileJson['Play Game']['Chance to Win']['Chance On'] = "75";
-        }
-    }
-
-    getRiskAlert() {
-        if (this.riskPercentage >= 1 && this.riskPercentage <= 20) {
-            return "Low";
-        } else if (this.riskPercentage > 20 && this.riskPercentage <= 40) {
-            return "Medium";
-        } else if (this.riskPercentage > 40 && this.riskPercentage <= 60) {
-            return "High";
-        } else if (this.riskPercentage > 60) {
-            return "Very High";
-        } else {
-            return "No Risk";
-        }
-    }
-
-    logData() {
-        console.log({
-            sWL: this.statusWinLose,
-            sRC: this.statusResultChance.toFixed(2),
-            sM: this.statusMultiplier.toFixed(2),
-            sSS: this.statusStepStrategy,
-            sTB: this.statusToBet.toFixed(8),
-            sPC: this.statusTotalProfitCounter.toFixed(8),
-            sLPP: `${this.statusLastProfitPersen.toFixed(3)}%`
-        });
-    }
+  }
 }
 
 export { PlayDice };
