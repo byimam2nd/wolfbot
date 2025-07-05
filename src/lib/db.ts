@@ -58,8 +58,9 @@ function initializeDatabase() {
 
     logger.info('Database initialized successfully.');
     return db;
-  } catch (error: any) {
-    logger.error(`Failed to initialize database: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    logger.error(`Failed to initialize database: ${errorMessage}`);
     throw error; // Re-throw to indicate failure
   }
 }

@@ -1,11 +1,24 @@
 import { PlayDice, BettingConfig } from './wolfbet';
-import { siteManager } from './sites/siteManager';
+import { siteManager } from '../../lib/sites/siteManager';
 import { logger } from './logger';
 
 let botInstance: PlayDice | null = null;
 let botRunning: boolean = false;
 let botInterval: NodeJS.Timeout | null = null;
-let currentStats: ReturnType<PlayDice['getStats']> | null = null;
+let currentStats: ReturnType<PlayDice['getStats']> = {
+  currentBetAmount: 0,
+  currentProfit: 0,
+  totalBets: 0,
+  wins: 0,
+  losses: 0,
+  winStreak: 0,
+  lossStreak: 0,
+  maxWinStreak: 0,
+  maxLossStreak: 0,
+  initialBalance: 0,
+  currentBalance: 0,
+  profitPercentage: 0,
+};
 
 export async function startBot(siteName: string, apiKey: string, config: BettingConfig) {
   if (botRunning) {
@@ -34,8 +47,8 @@ export async function startBot(siteName: string, apiKey: string, config: Betting
   }
 
   // Assuming currency and headers are still needed for PlayDice, though they should be refactored into DiceSite
-  const currency = 'USD'; // Placeholder, should come from site or config
-  const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
+  const _currency = 'USD'; // Placeholder, should come from site or config
+  const _headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
 
   botInstance = new PlayDice(site, config, initialBalance);
   botRunning = true;
@@ -60,10 +73,11 @@ export async function startBot(siteName: string, apiKey: string, config: Betting
       currentStats = botInstance!.getStats();
       logger.debug('Current Stats:', currentStats);
 
-    } catch (error: any) {
-      logger.error('Bot error:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      logger.error('Bot error:', errorMessage);
       stopBot();
-      currentStats = { ...currentStats, error: error.message }; // Add error to stats
+      currentStats = { ...currentStats, error: errorMessage }; // Add error to stats
     }
   }, 1000); // Run every 1 second for faster simulation
 

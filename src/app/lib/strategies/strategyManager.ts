@@ -1,8 +1,7 @@
-import { StrategyConfig } from './strategies';
+import { StrategyConfig } from '../strategies';
 import { Martingale } from './Martingale';
 import { Dalembert } from './Dalembert';
-import { getStrategies } from '../../app/actions'; // To fetch custom strategies from DB
-import { logger } from '../../app/lib/logger';
+import { getStrategies } from '../../actions'; // To fetch custom strategies from DB
 
 class StrategyManager {
   private builtInStrategies: Map<string, StrategyConfig> = new Map();
@@ -10,26 +9,18 @@ class StrategyManager {
 
   constructor() {
     this.loadBuiltInStrategies();
-    this.loadCustomStrategies(); // Load custom strategies on startup
   }
 
   private loadBuiltInStrategies() {
     this.builtInStrategies.set(Martingale.name, Martingale);
     this.builtInStrategies.set(Dalembert.name, Dalembert);
-    logger.info('Built-in strategies loaded:', Array.from(this.builtInStrategies.keys()));
   }
 
-  async loadCustomStrategies() {
-    const result = await getStrategies();
-    if (result.success && result.strategies) {
-      this.customStrategies.clear(); // Clear existing custom strategies
-      result.strategies.forEach(s => {
-        this.customStrategies.set(s.name, s);
-      });
-      logger.info('Custom strategies loaded:', Array.from(this.customStrategies.keys()));
-    } else {
-      logger.error('Failed to load custom strategies:', result.message);
-    }
+  setCustomStrategies(strategies: StrategyConfig[]) {
+    this.customStrategies.clear();
+    strategies.forEach(s => {
+      this.customStrategies.set(s.name, s);
+    });
   }
 
   getStrategy(name: string): StrategyConfig | undefined {

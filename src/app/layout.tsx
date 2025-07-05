@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import "./globals.css";
-import i18n from '../i18n'; // Import i18n configuration
-import { I18nextProvider } from 'react-i18next';
+import I18nProvider from './I18nProvider';
 
 export const metadata: Metadata = {
   title: "Wolfbot - DiceBot Dashboard",
@@ -16,9 +14,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <I18nextProvider i18n={i18n}>
+        <I18nProvider>
           {children}
-        </I18nextProvider>
+        </I18nProvider>
       </body>
     </html>
   );

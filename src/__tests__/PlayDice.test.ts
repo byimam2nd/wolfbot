@@ -6,13 +6,13 @@ const mockDiceSite: DiceSite = {
   name: 'MockSite',
   login: jest.fn(async (apiKey: string) => apiKey === 'valid_key'),
   getBalance: jest.fn(async (apiKey: string) => (apiKey === 'valid_key' ? 1000 : 0)),
-  placeBet: jest.fn(async (apiKey: string, amount: number, betRule: 'over' | 'under', betChance: number, clientSeed: string, serverSeed: string) => {
+  placeBet: jest.fn(async (apiKey: string, amount: number, betRule: 'over' | 'under', betChance: number, _clientSeed: string, _serverSeed: string) => {
     if (apiKey !== 'valid_key') return { success: false, win: false, profit: 0 };
     const win = Math.random() * 100 < betChance;
     const profit = win ? amount * (99 / betChance - 1) : -amount;
     return { success: true, win, profit };
   }),
-  withdraw: jest.fn(async (apiKey: string, amount: number, currency: string, address: string) => {
+  withdraw: jest.fn(async (apiKey: string, amount: number, _currency: string, _address: string) => {
     if (apiKey !== 'valid_key') return { success: false, message: 'Invalid API key.' };
     if (amount <= 0) return { success: false, message: 'Invalid amount.' };
     return { success: true, message: 'Withdrawal successful.', transactionId: 'mock_tx_id' };

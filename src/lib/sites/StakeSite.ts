@@ -22,8 +22,9 @@ export class StakeSite implements DiceSite {
       }
       logger.warn(`Stake login failed: ${response.status} - ${response.data.message || 'Unknown error'}`);
       return false;
-    } catch (error: any) {
-      logger.error(`Error during Stake login: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      logger.error(`Error during Stake login: ${errorMessage}`);
       return false;
     }
   }
@@ -43,8 +44,9 @@ export class StakeSite implements DiceSite {
       }
       logger.warn(`Stake getBalance failed: ${response.status} - ${response.data.message || 'Unknown error'}`);
       return 0;
-    } catch (error: any) {
-      logger.error(`Error during Stake getBalance: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      logger.error(`Error during Stake getBalance: ${errorMessage}`);
       return 0;
     }
   }
@@ -72,8 +74,9 @@ export class StakeSite implements DiceSite {
       }
       logger.warn(`Stake placeBet failed: ${response.status} - ${response.data.message || 'Unknown error'}`);
       return { success: false, win: false, profit: 0 };
-    } catch (error: any) {
-      logger.error(`Error during Stake placeBet: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      logger.error(`Error during Stake placeBet: ${errorMessage}`);
       return { success: false, win: false, profit: 0 };
     }
   }
@@ -98,9 +101,10 @@ export class StakeSite implements DiceSite {
       }
       logger.warn(`Stake withdrawal failed: ${response.status} - ${response.data.message || 'Unknown error'}`);
       return { success: false, message: 'Withdrawal failed.' };
-    } catch (error: any) {
-      logger.error(`Error during Stake withdrawal: ${error.message}`);
-      return { success: false, message: error.message || 'An unknown error occurred during withdrawal.' };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during withdrawal.';
+      logger.error(`Error during Stake withdrawal: ${errorMessage}`);
+      return { success: false, message: errorMessage };
     }
   }
 }

@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 interface LoginFormProps {
   availableSites: string[];
-  onLoginSuccess: (apiKey: string) => void;
+  onLoginSuccess: (apiKey: string, siteName: string) => void;
 }
 
 export default function LoginForm({ availableSites, onLoginSuccess }: LoginFormProps) {
@@ -15,6 +15,7 @@ export default function LoginForm({ availableSites, onLoginSuccess }: LoginFormP
   const [apiKey, setApiKey] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState<boolean | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,9 +26,11 @@ export default function LoginForm({ availableSites, onLoginSuccess }: LoginFormP
 
     if (result.success) {
       setMessage(t('login_successful'));
-      onLoginSuccess(apiKey); // Pass the API key back to the parent
+      onLoginSuccess(apiKey, siteName); // Pass the API key and siteName back to the parent
+      setLoginSuccess(true);
     } else {
       setMessage(t(result.message || 'an_unexpected_error_occurred'));
+      setLoginSuccess(false);
     }
     setLoading(false);
   };
@@ -71,8 +74,8 @@ export default function LoginForm({ availableSites, onLoginSuccess }: LoginFormP
         >
           {loading ? t('logging_in') : t('login')}
         </button>
-        {message && (
-          <p className={`text-center text-sm ${result.success ? 'text-green-400' : 'text-red-400'}`}>
+        {message && loginSuccess !== null && (
+          <p className={`text-center text-sm ${loginSuccess ? 'text-green-400' : 'text-red-400'}`}>
             {message}
           </p>
         )}

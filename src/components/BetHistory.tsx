@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { getBetHistory } from '../app/actions';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-interface BetRecord {
+export interface BetRecord {
   id: number;
   site: string;
   amount: number;

@@ -1,6 +1,6 @@
-import { DiceSite } from './sites/DiceSite';
-import { logger } from '../app/lib/logger';
-import { getDb } from '../lib/db';
+import { DiceSite } from '../../lib/sites/DiceSite';
+import { logger } from './logger';
+import { getDb } from '../../lib/db';
 
 // New interface for betting configuration
 export interface BettingConfig {
@@ -60,7 +60,7 @@ class PlayDice {
   }
 
   // Place a single bet
-  async placeBet(apiKey: string, strategyName: string = 'Manual'): Promise<{ success: boolean; message?: string; betResult?: any }> {
+  async placeBet(apiKey: string, strategyName: string = 'Manual'): Promise<{ success: boolean; message?: string; betResult?: { win: boolean; profit: number; } }> {
     this.totalBets++;
     logger.debug(`Placing bet #${this.totalBets} with amount: ${this.currentBetAmount.toFixed(8)}`);
 
@@ -80,8 +80,9 @@ class PlayDice {
       success = result.success;
       win = result.win;
       profit = result.profit;
-    } catch (error: any) {
-      logger.error(`Error placing bet on site: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      logger.error(`Error placing bet on site: ${errorMessage}`);
       return { success: false, message: 'Failed to place bet on site.' };
     }
 
@@ -163,7 +164,21 @@ class PlayDice {
   }
 
   // Get current betting statistics
-  getStats() {
+  getStats(): {
+    currentBetAmount: number;
+    currentProfit: number;
+    totalBets: number;
+    wins: number;
+    losses: number;
+    winStreak: number;
+    lossStreak: number;
+    maxWinStreak: number;
+    maxLossStreak: number;
+    initialBalance: number;
+    currentBalance: number;
+    profitPercentage: number;
+    error?: string; // Add optional error property
+  } {
     return {
       currentBetAmount: this.currentBetAmount,
       currentProfit: this.currentProfit,
@@ -216,8 +231,9 @@ class PlayDice {
         betData.server_seed_used
       );
       logger.info('Bet recorded to database.');
-    } catch (error: any) {
-      logger.error(`Failed to record bet to database: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      logger.error(`Failed to record bet to database: ${errorMessage}`);
     }
   }
 }

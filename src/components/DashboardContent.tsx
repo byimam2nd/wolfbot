@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BettingConfig } from '../app/lib/wolfbet';
-import { placeManualBet, saveStrategy, getStrategies, deleteStrategy, withdraw } from '../app/actions';
+import { placeManualBet, saveStrategy, deleteStrategy, withdraw, loadStrategies } from '../app/actions';
 import { StrategyConfig } from '../app/lib/strategies';
 import { useTranslation } from 'react-i18next';
 import { strategyManager } from '../app/lib/strategies/strategyManager';
@@ -93,7 +93,7 @@ export default function DashboardContent({ initialAccessToken, siteName }: Dashb
     }
   };
 
-  const fetchUserData = async (token: string) => {
+  const fetchUserData = useCallback(async (token: string) => {
     try {
       const response = await fetch(`/api/wolfbet/user?accessToken=${token}`);
       if (response.ok) {
@@ -108,13 +108,18 @@ export default function DashboardContent({ initialAccessToken, siteName }: Dashb
       setError(t('an_unexpected_error_occurred_while_fetching_user_data'));
       setUserData(null);
     }
-  };
+  }, [t]);
 
   const fetchStrategies = async () => {
-    await strategyManager.loadCustomStrategies(); // Ensure custom strategies are loaded
-    setStrategies(strategyManager.getAllStrategies());
-    if (strategyManager.getAllStrategies().length > 0) {
-      setSelectedStrategy(strategyManager.getAllStrategies()[0].name);
+    const result = await loadStrategies();
+    if (result.success && result.strategies) {
+      strategyManager.setCustomStrategies(result.strategies);
+      setStrategies(strategyManager.getAllStrategies());
+      if (strategyManager.getAllStrategies().length > 0) {
+        setSelectedStrategy(strategyManager.getAllStrategies()[0].name);
+      }
+    } else {
+      console.error('Failed to load strategies:', result.message);
     }
   };
 
@@ -136,7 +141,7 @@ export default function DashboardContent({ initialAccessToken, siteName }: Dashb
       setUserData(null);
     }
     fetchStrategies(); // Fetch strategies on component mount
-  }, [accessToken]);
+  }, [accessToken, fetchUserData]);
 
   const handleStart = async () => {
     if (!accessToken) {
@@ -183,7 +188,8 @@ export default function DashboardContent({ initialAccessToken, siteName }: Dashb
   };
 
   const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked; // Safely access checked
 
     if (name.startsWith('increaseOnWin.')) {
       const prop = name.split('.')[1];

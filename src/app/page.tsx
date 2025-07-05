@@ -7,6 +7,7 @@ import { getAvailableSites } from './actions';
 
 export default function Home() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [siteName, setSiteName] = useState<string | null>(null);
   const [availableSites, setAvailableSites] = useState<string[]>([]);
   const [loadingSites, setLoadingSites] = useState(true);
 
@@ -36,8 +37,9 @@ export default function Home() {
     }
   }, [accessToken]);
 
-  const handleLoginSuccess = (token: string) => {
+  const handleLoginSuccess = (token: string, site: string) => {
     setAccessToken(token);
+    setSiteName(site);
   };
 
   if (loadingSites) {
@@ -53,7 +55,7 @@ export default function Home() {
       {!accessToken ? (
         <LoginForm availableSites={availableSites} onLoginSuccess={handleLoginSuccess} />
       ) : (
-        <DashboardContent initialAccessToken={accessToken} />
+        <DashboardContent initialAccessToken={accessToken} siteName={siteName!} />
       )}
     </main>
   );

@@ -31,14 +31,16 @@ class Logger {
     }
   }
 
-  private log(level: LogLevel, message: string, ...args: any[]) {
+  private log(level: LogLevel, message: string, ...args: unknown[]) {
     const timestamp = new Date().toISOString();
-    const logEntry = {
+    const logEntry: { timestamp: string; level: LogLevel; message: string; args?: unknown[] } = {
       timestamp,
       level,
       message,
-      args: args.length > 0 ? args : undefined,
     };
+    if (args.length > 0) {
+      logEntry.args = args;
+    }
     const logMessage = JSON.stringify(logEntry);
 
     // Console logging
@@ -70,19 +72,19 @@ class Logger {
     return levels.indexOf(level) >= levels.indexOf(this.logLevel);
   }
 
-  debug(message: string, ...args: any[]) {
+  debug(message: string, ...args: unknown[]) {
     this.log(LogLevel.DEBUG, message, ...args);
   }
 
-  info(message: string, ...args: any[]) {
+  info(message: string, ...args: unknown[]) {
     this.log(LogLevel.INFO, message, ...args);
   }
 
-  warn(message: string, ...args: any[]) {
+  warn(message: string, ...args: unknown[]) {
     this.log(LogLevel.WARN, message, ...args);
   }
 
-  error(message: string, ...args: any[]) {
+  error(message: string, ...args: unknown[]) {
     this.log(LogLevel.ERROR, message, ...args);
   }
 }

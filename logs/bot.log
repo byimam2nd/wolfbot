@@ -34,3 +34,9 @@
 {"timestamp":"2025-07-05T06:07:36.941Z","level":"INFO","message":"Bet #2: WIN! Profit: 1.00000000. Current Profit: 0.00000000"}
 {"timestamp":"2025-07-05T06:07:36.942Z","level":"DEBUG","message":"Increased bet by fixed 0.5 to 2.00000000"}
 {"timestamp":"2025-07-05T06:07:36.942Z","level":"DEBUG","message":"Reset bet to baseBet: 1.00000000"}
+{"timestamp":"2025-07-05T15:34:24.373Z","level":"DEBUG","message":"Loaded site: Primedice"}
+{"timestamp":"2025-07-05T15:34:24.383Z","level":"DEBUG","message":"Loaded site: Stake"}
+{"timestamp":"2025-07-05T15:34:24.383Z","level":"INFO","message":"SiteManager initialized. Available sites:","args":[["Primedice","Stake"]]}
+{"timestamp":"2025-07-05T15:34:28.029Z","level":"DEBUG","message":"Loaded site: Primedice"}
+{"timestamp":"2025-07-05T15:34:28.042Z","level":"DEBUG","message":"Loaded site: Stake"}
+{"timestamp":"2025-07-05T15:34:28.042Z","level":"INFO","message":"SiteManager initialized. Available sites:","args":[["Primedice","Stake"]]}

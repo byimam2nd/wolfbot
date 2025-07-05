@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { startBot, stopBot, getBotStatus } from './app/lib/botManager';
 import { BettingConfig } from './app/lib/wolfbet';
-import { getStrategies, saveStrategy, deleteStrategy, placeManualBet } from './app/actions';
+import { getStrategies, deleteStrategy, placeManualBet } from './app/actions';
 import { logger } from './app/lib/logger';
 
 const program = new Command();

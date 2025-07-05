@@ -1,11 +1,13 @@
-import { siteManager } from './lib/sites/siteManager';
-import { PlayDice, BettingConfig } from './lib/wolfbet';
-import { getDb } from './lib/db';
-import { StrategyConfig } from './lib/strategies';
-import { logger } from './lib/logger';
+'use server';
+
+import { siteManager } from '../lib/sites/siteManager';
+import { PlayDice, BettingConfig } from '../app/lib/wolfbet';
+import { getDb } from '../lib/db';
+import { StrategyConfig } from '../app/lib/strategies';
+import { logger } from '../app/lib/logger';
 
 // In-memory storage for bot instances (for simplicity, will be replaced by a more robust solution)
-const activeBots: Map<string, PlayDice> = new Map();
+const _activeBots: Map<string, PlayDice> = new Map();
 
 export async function login(siteName: string, apiKey: string) {
   const site = siteManager.getSite(siteName);
@@ -23,9 +25,10 @@ export async function login(siteName: string, apiKey: string) {
       logger.warn(`Login failed for site: ${siteName} - Invalid API key.`);
       return { success: false, message: 'Invalid API key.' };
     }
-  } catch (error: any) {
-    logger.error(`Error during login for site ${siteName}: ${error.message}`);
-    return { success: false, message: error.message || 'An unknown error occurred during login.' };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during login.';
+    logger.error(`Error during login for site ${siteName}: ${errorMessage}`);
+    return { success: false, message: errorMessage };
   }
 }
 
@@ -62,18 +65,21 @@ export async function placeManualBet(siteName: string, apiKey: string, amount: n
 
     const tempPlayDice = new PlayDice(site, tempConfig, initialBalance);
 
-    const { success, win, profit } = await tempPlayDice.placeBet(apiKey, 'Manual'); // Pass 'Manual' as strategy name
+    const betResult = await tempPlayDice.placeBet(apiKey, 'Manual'); // Pass 'Manual' as strategy name
 
-    if (success) {
+    if (betResult.success) {
+      const win = betResult.betResult?.win;
+      const profit = betResult.betResult?.profit;
       logger.info(`Manual bet placed on ${siteName}: ${win ? 'WIN' : 'LOSS'}, Profit: ${profit}`);
       return { success: true, win, profit, message: win ? 'Bet won!' : 'Bet lost.' };
     } else {
       logger.error(`Failed to place manual bet on ${siteName}.`);
       return { success: false, message: 'Failed to place manual bet.' };
     }
-  } catch (error: any) {
-    logger.error(`Error during manual bet on ${siteName}: ${error.message}`);
-    return { success: false, message: error.message || 'An unknown error occurred during manual bet.' };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during manual bet.';
+    logger.error(`Error during manual bet on ${siteName}: ${errorMessage}`);
+    return { success: false, message: errorMessage };
   }
 }
 
@@ -84,23 +90,27 @@ export async function saveStrategy(strategy: StrategyConfig) {
     stmt.run(strategy.name, JSON.stringify(strategy));
     logger.info(`Strategy saved: ${strategy.name}`);
     return { success: true, message: 'Strategy saved successfully.' };
-  } catch (error: any) {
-    logger.error(`Failed to save strategy ${strategy.name}: ${error.message}`);
-    return { success: false, message: error.message || 'Failed to save strategy.' };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to save strategy.';
+    logger.error(`Failed to save strategy ${strategy.name}: ${errorMessage}`);
+    return { success: false, message: errorMessage };
   }
 }
+
+interface StrategyRow { config: string; }
 
 export async function getStrategies(): Promise<{ success: boolean; strategies?: StrategyConfig[]; message?: string }> {
   const db = getDb();
   try {
     const stmt = db.prepare('SELECT * FROM strategies');
-    const rows = stmt.all();
-    const strategies: StrategyConfig[] = rows.map((row: any) => JSON.parse(row.config));
+    const rows = stmt.all() as StrategyRow[];
+    const strategies: StrategyConfig[] = rows.map((row) => JSON.parse(row.config));
     logger.info(`Fetched ${strategies.length} strategies.`);
     return { success: true, strategies };
-  } catch (error: any) {
-    logger.error(`Failed to fetch strategies: ${error.message}`);
-    return { success: false, message: error.message || 'Failed to fetch strategies.' };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    logger.error(`Failed to fetch strategies: ${errorMessage}`);
+    return { success: false, message: errorMessage };
   }
 }
 
@@ -111,9 +121,10 @@ export async function deleteStrategy(name: string) {
     stmt.run(name);
     logger.info(`Strategy deleted: ${name}`);
     return { success: true, message: 'Strategy deleted successfully.' };
-  } catch (error: any) {
-    logger.error(`Failed to delete strategy ${name}: ${error.message}`);
-    return { success: false, message: error.message || 'Failed to delete strategy.' };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete strategy.';
+    logger.error(`Failed to delete strategy ${name}: ${errorMessage}`);
+    return { success: false, message: errorMessage };
   }
 }
 
@@ -133,21 +144,40 @@ export async function withdraw(siteName: string, apiKey: string, amount: number,
       logger.error(`Withdrawal failed from ${siteName}: ${result.message}`);
       return { success: false, message: result.message || 'Failed to process withdrawal.' };
     }
-  } catch (error: any) {
-    logger.error(`Error during withdrawal from ${siteName}: ${error.message}`);
-    return { success: false, message: error.message || 'An unknown error occurred during withdrawal.' };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during withdrawal.';
+    logger.error(`Error during withdrawal from ${siteName}: ${errorMessage}`);
+    return { success: false, message: errorMessage };
   }
 }
 
-export async function getBetHistory(): Promise<{ success: boolean; history?: any[]; message?: string }> {
+import { BetRecord } from '../components/BetHistory';
+
+export async function getBetHistory(): Promise<{ success: boolean; history?: BetRecord[]; message?: string }> {
   const db = getDb();
   try {
     const stmt = db.prepare('SELECT * FROM bets ORDER BY timestamp DESC');
     const rows = stmt.all();
     logger.info(`Fetched ${rows.length} bet history records.`);
-    return { success: true, history: rows };
-  } catch (error: any) {
-    logger.error(`Failed to fetch bet history: ${error.message}`);
-    return { success: false, message: error.message || 'Failed to fetch bet history.' };
+    return { success: true, history: rows as BetRecord[] };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch bet history.';
+    logger.error(`Failed to fetch bet history: ${errorMessage}`);
+    return { success: false, message: errorMessage };
+  }
+}
+
+export async function loadStrategies(): Promise<{ success: boolean; strategies?: StrategyConfig[]; message?: string }> {
+  const db = getDb();
+  try {
+    const stmt = db.prepare('SELECT * FROM strategies');
+    const rows = stmt.all() as StrategyRow[];
+    const strategies: StrategyConfig[] = rows.map((row) => JSON.parse(row.config));
+    logger.info(`Fetched ${strategies.length} strategies.`);
+    return { success: true, strategies };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    logger.error(`Failed to fetch strategies: ${errorMessage}`);
+    return { success: false, message: errorMessage };
   }
 }

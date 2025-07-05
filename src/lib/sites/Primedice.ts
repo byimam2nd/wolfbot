@@ -22,8 +22,9 @@ export class PrimediceSite implements DiceSite {
       }
       logger.warn(`Primedice login failed: ${response.status} - ${response.data.message || 'Unknown error'}`);
       return false;
-    } catch (error: any) {
-      logger.error(`Error during Primedice login: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      logger.error(`Error during Primedice login: ${errorMessage}`);
       return false;
     }
   }
@@ -43,8 +44,9 @@ export class PrimediceSite implements DiceSite {
       }
       logger.warn(`Primedice getBalance failed: ${response.status} - ${response.data.message || 'Unknown error'}`);
       return 0;
-    } catch (error: any) {
-      logger.error(`Error during Primedice getBalance: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      logger.error(`Error during Primedice getBalance: ${errorMessage}`);
       return 0;
     }
   }
@@ -72,8 +74,9 @@ export class PrimediceSite implements DiceSite {
       }
       logger.warn(`Primedice placeBet failed: ${response.status} - ${response.data.message || 'Unknown error'}`);
       return { success: false, win: false, profit: 0 };
-    } catch (error: any) {
-      logger.error(`Error during Primedice placeBet: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      logger.error(`Error during Primedice placeBet: ${errorMessage}`);
       return { success: false, win: false, profit: 0 };
     }
   }
@@ -98,9 +101,10 @@ export class PrimediceSite implements DiceSite {
       }
       logger.warn(`Primedice withdrawal failed: ${response.status} - ${response.data.message || 'Unknown error'}`);
       return { success: false, message: 'Withdrawal failed.' };
-    } catch (error: any) {
-      logger.error(`Error during Primedice withdrawal: ${error.message}`);
-      return { success: false, message: error.message || 'An unknown error occurred during withdrawal.' };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during withdrawal.';
+      logger.error(`Error during Primedice withdrawal: ${errorMessage}`);
+      return { success: false, message: errorMessage };
     }
   }
 }
