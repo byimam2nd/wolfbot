@@ -1,7 +1,6 @@
 import { StrategyConfig } from '../strategies';
 import { Martingale } from './Martingale';
 import { Dalembert } from './Dalembert';
-import { getStrategies } from '../../actions'; // To fetch custom strategies from DB
 
 class StrategyManager {
   private builtInStrategies: Map<string, StrategyConfig> = new Map();

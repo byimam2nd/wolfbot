@@ -86,6 +86,11 @@ export default function BetHistory() {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">{t('profit')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">{t('result')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">{t('strategy')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">{t('bet_parameters')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">{t('balance_before')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">{t('balance_after')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">{t('client_seed')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">{t('server_seed')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">{t('timestamp')}</th>
                 </tr>
               </thead>
@@ -105,6 +110,11 @@ export default function BetHistory() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{bet.strategy_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200 break-all">{bet.bet_parameters}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{bet.balance_before_bet.toFixed(8)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{bet.balance_after_bet.toFixed(8)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{bet.client_seed_used}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{bet.server_seed_used}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{new Date(bet.timestamp).toLocaleString()}</td>
                   </tr>
                 ))}

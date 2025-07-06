@@ -391,6 +391,14 @@ export default function DashboardContent({ initialAccessToken, siteName }: Dashb
                 <input type="number" name="stopOnLoss" value={config.stopOnLoss} onChange={handleConfigChange} className="w-full bg-gray-700 border border-gray-600 rounded p-2" step="any" />
               </div>
               <div>
+                <label className="block mb-1 text-sm">{t('stop_on_win_percentage')}</label>
+                <input type="number" name="stopOnWinPercentage" value={config.stopOnWinPercentage || 0} onChange={handleConfigChange} className="w-full bg-gray-700 border border-gray-600 rounded p-2" step="any" />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm">{t('stop_on_loss_percentage')}</label>
+                <input type="number" name="stopOnLossPercentage" value={config.stopOnLossPercentage || 0} onChange={handleConfigChange} className="w-full bg-gray-700 border border-gray-600 rounded p-2" step="any" />
+              </div>
+              <div>
                 <label className="block mb-1 text-sm">{t('bet_rule')}</label>
                 <select name="betRule" value={config.betRule} onChange={handleConfigChange} className="w-full bg-gray-700 border border-gray-600 rounded p-2">
                   <option value="over">{t('over')}</option>

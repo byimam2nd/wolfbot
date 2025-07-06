@@ -6,8 +6,10 @@ import { getDb } from '../../lib/db';
 export interface BettingConfig {
   baseBet: number;
   payoutMultiplier: number;
-  stopOnWin: number; // Target profit to stop
-  stopOnLoss: number; // Max loss to stop
+  stopOnWin: number; // Target profit to stop (absolute value)
+  stopOnLoss: number; // Max loss to stop (absolute value)
+  stopOnWinPercentage?: number; // Target profit to stop (percentage of initial balance)
+  stopOnLossPercentage?: number; // Max loss to stop (percentage of initial balance)
   increaseOnWin: {
     type: 'none' | 'percentage' | 'fixed';
     value: number;
@@ -158,6 +160,18 @@ class PlayDice {
     if (this.config.stopOnLoss > 0 && this.currentProfit <= -this.config.stopOnLoss) {
       logger.warn(`Stop loss reached: ${this.currentProfit.toFixed(8)} <= -${this.config.stopOnLoss.toFixed(8)}`);
       return { success: true, message: 'Stop loss reached.', betResult: { win, profit } };
+    }
+
+    const profitPercentage = (this.initialBalance > 0) ? (this.currentProfit / this.initialBalance) * 100 : 0;
+
+    if (this.config.stopOnWinPercentage && this.config.stopOnWinPercentage > 0 && profitPercentage >= this.config.stopOnWinPercentage) {
+      logger.info(`Target profit percentage reached: ${profitPercentage.toFixed(2)}% >= ${this.config.stopOnWinPercentage.toFixed(2)}%`);
+      return { success: true, message: 'Target profit percentage reached.', betResult: { win, profit } };
+    }
+
+    if (this.config.stopOnLossPercentage && this.config.stopOnLossPercentage > 0 && profitPercentage <= -this.config.stopOnLossPercentage) {
+      logger.warn(`Stop loss percentage reached: ${profitPercentage.toFixed(2)}% <= -${this.config.stopOnLossPercentage.toFixed(2)}%`);
+      return { success: true, message: 'Stop loss percentage reached.', betResult: { win, profit } };
     }
 
     return { success: true, betResult: { win, profit } };
