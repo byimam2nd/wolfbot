@@ -62,3 +62,9 @@
 {"timestamp":"2025-07-06T02:56:58.655Z","level":"DEBUG","message":"Loaded site: Primedice"}
 {"timestamp":"2025-07-06T02:56:58.656Z","level":"DEBUG","message":"Loaded site: Stake"}
 {"timestamp":"2025-07-06T02:56:58.656Z","level":"INFO","message":"SiteManager initialized. Available sites:","args":[["Primedice","Stake"]]}
+{"timestamp":"2025-07-06T09:53:37.950Z","level":"DEBUG","message":"Loaded site: Primedice"}
+{"timestamp":"2025-07-06T09:53:37.952Z","level":"DEBUG","message":"Loaded site: Stake"}
+{"timestamp":"2025-07-06T09:53:37.953Z","level":"INFO","message":"SiteManager initialized. Available sites:","args":[["Primedice","Stake"]]}
+{"timestamp":"2025-07-06T09:53:40.969Z","level":"DEBUG","message":"Loaded site: Primedice"}
+{"timestamp":"2025-07-06T09:53:40.969Z","level":"DEBUG","message":"Loaded site: Stake"}
+{"timestamp":"2025-07-06T09:53:40.971Z","level":"INFO","message":"SiteManager initialized. Available sites:","args":[["Primedice","Stake"]]}

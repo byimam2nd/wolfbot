@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { login } from '../app/actions'; // Import the server action
 import { useTranslation } from 'react-i18next';
 
@@ -12,25 +13,37 @@ interface LoginFormProps {
 export default function LoginForm({ availableSites, onLoginSuccess }: LoginFormProps) {
   const { t } = useTranslation();
   const [siteName, setSiteName] = useState(availableSites[0] || '');
+  
+  useEffect(() => {
+    if (availableSites.length > 0 && !siteName) {
+      setSiteName(availableSites[0]);
+    }
+  }, [availableSites, siteName]);
   const [apiKey, setApiKey] = useState('');
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loginSuccess, setLoginSuccess] = useState<boolean | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('');
     setLoading(true);
+
+    if (!siteName) {
+      toast.error(t('please_select_a_site'));
+      setLoading(false);
+      return;
+    }
+    if (!apiKey) {
+      toast.error(t('please_enter_your_api_key'));
+      setLoading(false);
+      return;
+    }
 
     const result = await login(siteName, apiKey);
 
     if (result.success) {
-      setMessage(t('login_successful'));
+      toast.success(t('login_successful'));
       onLoginSuccess(apiKey, siteName); // Pass the API key and siteName back to the parent
-      setLoginSuccess(true);
     } else {
-      setMessage(t(result.message || 'an_unexpected_error_occurred'));
-      setLoginSuccess(false);
+      toast.error(t(result.message || 'an_unexpected_error_occurred'));
     }
     setLoading(false);
   };
@@ -74,11 +87,7 @@ export default function LoginForm({ availableSites, onLoginSuccess }: LoginFormP
         >
           {loading ? t('logging_in') : t('login')}
         </button>
-        {message && loginSuccess !== null && (
-          <p className={`text-center text-sm ${loginSuccess ? 'text-green-400' : 'text-red-400'}`}>
-            {message}
-          </p>
-        )}
+        
       </form>
     </div>
   );

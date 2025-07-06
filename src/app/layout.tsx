@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import I18nProvider from './I18nProvider';
+import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: "Wolfbot - DiceBot Dashboard",
@@ -17,6 +18,7 @@ export default function RootLayout({
         <I18nProvider>
           {children}
         </I18nProvider>
+        <Toaster />
       </body>
     </html>
   );

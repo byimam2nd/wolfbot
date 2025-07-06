@@ -57,7 +57,7 @@ export default function BetHistory() {
   })).reverse(); // Reverse to show oldest first on chart
 
   return (
-    <div className="bg-gray-800 p-6 rounded-lg shadow-lg mt-8">
+    <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg mt-8">
       <h2 className="text-2xl font-semibold mb-4">{t('bet_history')}</h2>
 
       {betHistory.length === 0 ? (
@@ -114,7 +114,7 @@ export default function BetHistory() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{bet.balance_before_bet.toFixed(8)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{bet.balance_after_bet.toFixed(8)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{bet.client_seed_used}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{bet.server_seed_used}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200 hidden sm:table-cell">{bet.server_seed_used}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{new Date(bet.timestamp).toLocaleString()}</td>
                   </tr>
                 ))}

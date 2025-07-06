@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import LoginForm from '../components/LoginForm';
 import DashboardContent from '../components/DashboardContent';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { getAvailableSites } from './actions';
 
 export default function Home() {
@@ -20,14 +21,16 @@ export default function Home() {
 
     // Fetch available sites
     const fetchSites = async () => {
+      let sites: string[] = [];
       try {
-        const sites = await getAvailableSites();
+        sites = await getAvailableSites();
         setAvailableSites(sites);
       } catch (error) {
         console.error('Error fetching available sites:', error);
         setAvailableSites([]); // Ensure it's an empty array on error
       } finally {
         setLoadingSites(false);
+        console.log('Available sites after fetch:', sites);
       }
     };
     fetchSites();
@@ -57,12 +60,14 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-8 bg-gray-900 text-white">
-      {!accessToken ? (
-        <LoginForm availableSites={availableSites} onLoginSuccess={handleLoginSuccess} />
-      ) : (
-        <DashboardContent initialAccessToken={accessToken} siteName={siteName!} />
-      )}
-    </main>
+    <ErrorBoundary>
+      <main className="flex min-h-screen flex-col items-center p-8 bg-gray-900 text-white">
+        {!accessToken ? (
+          <LoginForm availableSites={availableSites} onLoginSuccess={handleLoginSuccess} />
+        ) : (
+          <DashboardContent initialAccessToken={accessToken} siteName={siteName!} />
+        )}
+      </main>
+    </ErrorBoundary>
   );
 }
