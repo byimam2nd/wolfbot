@@ -32,10 +32,7 @@ export async function login(siteName: string, apiKey: string) {
   }
 }
 
-export async function getAvailableSites() {
-  logger.info('Fetching available sites.');
-  return siteManager.getAvailableSites();
-}
+
 
 export async function placeManualBet(siteName: string, apiKey: string, amount: number, betRule: 'over' | 'under', betChance: number) {
   const site = siteManager.getSite(siteName);
