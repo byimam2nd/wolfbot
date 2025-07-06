@@ -1,0 +1,220 @@
+# Penjelasan Detail Proyek Wolfbot
+
+Dokumen ini menyediakan penjelasan komprehensif mengenai proyek Wolfbot, sebuah aplikasi web full-stack yang berfungsi sebagai dashboard untuk mengontrol dan memantau bot taruhan otomatis untuk permainan Dice di platform wolf.bet. Dokumen ini mencakup tujuan proyek, teknologi yang digunakan, struktur kode, alur kerja, dan komponen kunci, yang akan menjadi dasar untuk pengembangan dan pemeliharaan di masa mendatang.
+
+## 1. Gambaran Umum Proyek
+
+Wolfbot adalah refaktor lengkap dari skrip berbasis Python asli. Migrasi ke aplikasi Next.js full-stack ini bertujuan untuk menyediakan antarmuka yang lebih modern, manajemen bot yang lebih terstruktur, efisiensi yang ditingkatkan, dan pengalaman pengguna yang lebih baik.
+
+**Tujuan Utama:**
+*   Menyediakan dashboard berbasis web yang intuitif untuk mengontrol bot taruhan.
+*   Memungkinkan pengguna untuk memulai, menghentikan, dan memantau status bot.
+*   Mengelola konfigurasi bot dan strategi taruhan.
+*   Menampilkan informasi pengguna dan riwayat taruhan secara real-time.
+
+**Keunggulan Refaktor ke Next.js:**
+*   **Antarmuka Pengguna Modern:** Dashboard web yang dibangun dengan React dan Tailwind CSS untuk kontrol dan pemantauan yang mudah.
+*   **Backend Terstruktur:** Backend yang kuat dengan rute API untuk mengelola siklus hidup dan konfigurasi bot.
+*   **Efisiensi yang Ditingkatkan:** Keamanan tipe dengan TypeScript dan komunikasi klien-server yang efisien.
+*   **Pengalaman Pengguna yang Ditingkatkan:** Pengguna kini dapat mengelola bot dari perangkat apa pun dengan browser web.
+
+## 2. Tumpukan Teknologi (Tech Stack)
+
+Proyek Wolfbot dibangun menggunakan teknologi modern untuk memastikan kinerja, skalabilitas, dan kemudahan pemeliharaan.
+
+*   **Framework:** Next.js (React Framework untuk produksi)
+*   **Bahasa Pemrograman:** TypeScript (Superset JavaScript dengan keamanan tipe)
+*   **Antarmuka Pengguna (UI):** React (Library JavaScript untuk membangun antarmuka pengguna)
+*   **Styling:** Tailwind CSS (Framework CSS utility-first)
+*   **Manajer Paket:** pnpm (Fast, disk space efficient package manager)
+
+## 3. Struktur Folder dan File
+
+Berikut adalah representasi detail dari struktur direktori proyek, dengan penjelasan untuk file dan folder kunci:
+
+```
+/workspaces/wolfbot/
+├── .gitignore                  # File untuk menentukan file dan direktori yang harus diabaikan oleh Git.
+├── .npmrc                      # File konfigurasi npm/pnpm.
+├── docker-compose.yml          # Konfigurasi Docker Compose (jika digunakan untuk pengembangan/deployment).
+├── eslint.config.mjs           # Konfigurasi ESLint untuk linting kode.
+├── GEMINI.md                   # Dokumentasi proyek dan catatan penting (seperti yang Anda baca sebelumnya).
+├── jest.config.js              # Konfigurasi Jest untuk pengujian unit.
+├── next.config.ts              # Konfigurasi Next.js.
+├── package.json                # Metadata proyek dan daftar dependensi.
+├── pnpm-lock.yaml              # File lock pnpm yang memastikan instalasi dependensi yang konsisten.
+├── postcss.config.mjs          # Konfigurasi PostCSS (digunakan oleh Tailwind CSS).
+├── README.md                   # Dokumentasi proyek utama.
+├── tailwind.config.ts          # Konfigurasi Tailwind CSS.
+├── tsconfig.json               # Konfigurasi TypeScript.
+├── .git/                       # Direktori Git untuk kontrol versi.
+├── .next/                      # Direktori build Next.js (dihasilkan secara otomatis).
+│   ├── cache/                  # Cache build.
+│   ├── diagnostics/            # Diagnostik build.
+│   ├── server/                 # Kode server Next.js.
+│   ├── static/                 # Aset statis yang disajikan oleh Next.js.
+│   └── types/                  # Definisi tipe yang dihasilkan.
+├── logs/
+│   └── bot.log                 # File log untuk aktivitas bot.
+├── node_modules/               # Direktori tempat dependensi pnpm diinstal.
+├── public/                     # Direktori untuk aset statis yang dapat diakses publik.
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+└── src/                        # Direktori kode sumber utama.
+    ├── cli.ts                  # Kemungkinan skrip CLI terpisah atau utilitas.
+    ├── i18n.ts                 # Konfigurasi internasionalisasi (i18n).
+    ├── __tests__/              # Direktori untuk file pengujian unit.
+    │   └── PlayDice.test.ts    # Contoh file pengujian untuk logika permainan Dice.
+    ├── app/                    # Direktori utama aplikasi Next.js (App Router).
+    │   ├── actions.ts          # Server Actions atau fungsi yang dapat dipanggil dari klien.
+    │   ├── favicon.ico         # Ikon situs web.
+    │   ├── globals.css         # Gaya CSS global.
+    │   ├── I18nProvider.tsx    # Komponen penyedia internasionalisasi.
+    │   ├── layout.tsx          # Layout root untuk aplikasi Next.js.
+    │   ├── page.tsx            # Halaman utama/dashboard bot. Ini adalah UI utama.
+    │   ├── api/                # Direktori untuk rute API Next.js.
+    │   │   ├── init/           # Rute API untuk inisialisasi (jika ada).
+    │   │   │   └── route.ts
+    │   │   └── wolfbet/        # Rute API khusus untuk kontrol bot Wolfbet.
+    │   │       ├── start/      # Rute API untuk memulai bot.
+    │   │       │   └── route.ts
+    │   │       ├── status/     # Rute API untuk mendapatkan status bot.
+    │   │       │   └── route.ts
+    │   │       ├── stop/       # Rute API untuk menghentikan bot.
+    │   │       │   └── route.ts
+    │   │       └── user/       # Rute API untuk mengambil data pengguna (saldo, dll.).
+    │   │           └── route.ts
+    │   └── lib/                # Direktori untuk logika bisnis dan utilitas sisi klien/server.
+    │       ├── botManager.ts   # Mengelola status dan siklus hidup bot (start, stop, status) di sisi server.
+    │       ├── logger.ts       # Utilitas logging.
+    │       ├── strategies.ts   # Definisi strategi taruhan umum.
+    │       ├── wolfbet.ts      # Logika inti bot taruhan, diterjemahkan dari kode Python asli.
+    │       └── strategies/     # Direktori untuk implementasi strategi taruhan spesifik.
+    │           ├── Dalembert.ts    # Implementasi strategi Dalembert.
+    │           ├── Martingale.ts   # Implementasi strategi Martingale.
+    │           └── strategyManager.ts # Mengelola pemilihan dan eksekusi strategi.
+    ├── components/             # Direktori untuk komponen UI React yang dapat digunakan kembali.
+    │   ├── BetHistory.tsx      # Komponen untuk menampilkan riwayat taruhan.
+    │   ├── DashboardContent.tsx # Komponen utama untuk konten dashboard.
+    │   ├── ErrorBoundary.tsx   # Komponen untuk menangani error UI.
+    │   ├── LoginForm.tsx       # Komponen untuk formulir login.
+    │   └── dashboard/          # Komponen spesifik untuk dashboard.
+    │       ├── BotControl.tsx      # Kontrol untuk memulai/menghentikan bot.
+    │       ├── Configuration.tsx   # Pengaturan konfigurasi bot.
+    │       ├── LiveStats.tsx       # Menampilkan statistik bot secara real-time.
+    │       ├── ManualBet.tsx       # Antarmuka untuk taruhan manual.
+    │       ├── StrategyManagement.tsx # Manajemen strategi taruhan.
+    │       ├── UserInformation.tsx  # Menampilkan informasi pengguna (saldo, dll.).
+    │       └── Withdrawal.tsx      # Komponen untuk fungsionalitas penarikan.
+    └── lib/                    # Direktori untuk utilitas atau library umum (di luar konteks Next.js app router).
+        ├── db.ts               # Utilitas database (jika ada).
+        └── sites/              # Direktori untuk integrasi dengan situs taruhan yang berbeda.
+            ├── DiceSite.ts         # Abstraksi untuk situs Dice.
+            ├── Primedice.ts        # Implementasi untuk Primedice.
+            ├── siteManager.ts      # Mengelola pemilihan dan interaksi situs.
+            └── StakeSite.ts        # Implementasi untuk Stake.com.
+```
+
+## 4. Alur Kerja dan Alur Kode Keseluruhan (Workflow and Code Flow)
+
+Proyek Wolfbot mengikuti arsitektur klien-server yang khas untuk aplikasi web full-stack Next.js.
+
+### 4.1. Alur Kerja Frontend (Client-Side)
+
+1.  **Akses Dashboard:** Pengguna membuka `http://localhost:3000` di browser mereka.
+2.  **Pemuatan Halaman:** `src/app/page.tsx` dimuat, yang merupakan komponen React utama untuk dashboard.
+3.  **Autentikasi & Data Pengguna:**
+    *   Komponen `page.tsx` mencoba mengambil `accessToken` dari `localStorage` untuk persistensi sesi.
+    *   Jika `accessToken` tersedia, fungsi `fetchUserData` dipanggil (melalui `useEffect`) untuk mengambil informasi pengguna (username, saldo, mata uang) dari backend melalui rute API `/api/wolfbet/user`.
+    *   Data pengguna yang diambil (`userData`) disimpan dalam state dan ditampilkan di komponen `UserInformation.tsx`.
+4.  **Interaksi Pengguna:**
+    *   Pengguna berinteraksi dengan berbagai komponen di dashboard (misalnya, `BotControl.tsx`, `Configuration.tsx`, `StrategyManagement.tsx`).
+    *   Ketika pengguna mengklik tombol "Start Bot" atau "Stop Bot" di `BotControl.tsx`, atau mengubah konfigurasi, permintaan dikirim ke rute API backend yang sesuai.
+    *   Status bot (running/stopped) dan statistik real-time diperbarui di UI melalui polling atau WebSocket (jika diimplementasikan, saat ini kemungkinan polling ke `/api/wolfbet/status`).
+
+### 4.2. Alur Kerja Backend (Server-Side & API)
+
+Backend Next.js menangani permintaan API dari frontend dan mengelola logika bot.
+
+1.  **Rute API (`src/app/api/wolfbet/`)**:
+    *   **`/api/wolfbet/start/route.ts`**:
+        *   Menerima permintaan dari frontend untuk memulai bot.
+        *   Memanggil fungsi `startBot` dari `src/app/lib/botManager.ts`.
+        *   `botManager.ts` bertanggung jawab untuk menginisialisasi dan menjalankan proses bot (yang logikanya ada di `src/app/lib/wolfbet.ts`).
+        *   Mengembalikan respons yang menunjukkan keberhasilan atau kegagalan.
+    *   **`/api/wolfbet/stop/route.ts`**:
+        *   Menerima permintaan dari frontend untuk menghentikan bot.
+        *   Memanggil fungsi `stopBot` dari `src/app/lib/botManager.ts`.
+        *   `botManager.ts` menghentikan proses bot yang sedang berjalan.
+        *   Mengembalikan respons.
+    *   **`/api/wolfbet/status/route.ts`**:
+        *   Menerima permintaan dari frontend untuk mendapatkan status bot saat ini.
+        *   Memanggil fungsi `getBotStatus` dari `src/app/lib/botManager.ts`.
+        *   `botManager.ts` memeriksa apakah bot sedang berjalan dan mengembalikan statusnya, bersama dengan statistik atau log yang relevan.
+        *   Mengembalikan respons JSON dengan status bot.
+    *   **`/api/wolfbet/user/route.ts`**:
+        *   Menerima permintaan dari frontend untuk mengambil data pengguna.
+        *   Membuat permintaan HTTP ke endpoint API Wolf.bet yang sebenarnya (misalnya, `https://wolf.bet/api/v1/user`), menggunakan `accessToken` yang disediakan.
+        *   Mengembalikan data pengguna yang diterima atau pesan error.
+
+2.  **Manajemen Bot (`src/app/lib/botManager.ts`)**:
+    *   Ini adalah modul inti yang menjembatani rute API dengan logika bot yang sebenarnya.
+    *   Bertanggung jawab untuk:
+        *   Memulai proses bot sebagai proses terpisah (mungkin menggunakan `child_process` di Node.js).
+        *   Melacak PID (Process ID) bot yang sedang berjalan.
+        *   Menghentikan proses bot.
+        *   Menyediakan status bot (running/stopped) dan mungkin statistik dasar.
+        *   Berinteraksi dengan `src/app/lib/wolfbet.ts` untuk menjalankan logika bot.
+
+3.  **Logika Inti Bot (`src/app/lib/wolfbet.ts`)**:
+    *   Berisi implementasi inti dari algoritma taruhan Dice, yang merupakan terjemahan dari skrip Python asli.
+    *   Menangani:
+        *   Koneksi ke platform wolf.bet (melalui API atau simulasi).
+        *   Eksekusi taruhan berdasarkan strategi yang dipilih.
+        *   Perhitungan hasil taruhan.
+        *   Manajemen saldo dan statistik taruhan.
+        *   Interaksi dengan `fileManager` untuk membaca/menulis konfigurasi dan data.
+    *   Menggunakan strategi taruhan yang didefinisikan di `src/app/lib/strategies/`.
+
+4.  **Strategi Taruhan (`src/app/lib/strategies/`)**:
+    *   Setiap file di direktori ini (misalnya, `Dalembert.ts`, `Martingale.ts`) mengimplementasikan strategi taruhan tertentu.
+    *   `strategyManager.ts` bertanggung jawab untuk memilih dan menerapkan strategi yang benar berdasarkan konfigurasi pengguna.
+
+## 5. Fitur dan Komponen Kunci
+
+*   **Dashboard Utama (`src/app/page.tsx`)**: Titik masuk utama UI, mengintegrasikan semua komponen dashboard.
+*   **Kontrol Bot (`src/components/dashboard/BotControl.tsx`)**: Tombol untuk memulai dan menghentikan bot.
+*   **Informasi Pengguna (`src/components/dashboard/UserInformation.tsx`)**: Menampilkan username, saldo, dan mata uang pengguna yang diambil dari API Wolf.bet.
+*   **Konfigurasi Bot (`src/components/dashboard/Configuration.tsx`)**: Antarmuka untuk mengatur parameter bot seperti jumlah taruhan awal, strategi, dll.
+*   **Statistik Langsung (`src/components/dashboard/LiveStats.tsx`)**: Menampilkan metrik kinerja bot secara real-time (misalnya, jumlah taruhan, keuntungan/kerugian).
+*   **Manajemen Strategi (`src/components/dashboard/StrategyManagement.tsx`)**: Memungkinkan pengguna untuk memilih dan mengonfigurasi strategi taruhan yang berbeda.
+*   **Persistensi Access Token**: Access token pengguna disimpan di `localStorage` browser untuk pengalaman pengguna yang mulus.
+*   **Penanganan Error**: Implementasi `ErrorBoundary.tsx` untuk menangani error UI secara elegan.
+*   **Logging**: `src/app/lib/logger.ts` untuk mencatat aktivitas bot ke `logs/bot.log`.
+
+## 6. Penggunaan Dokumen Ini di Masa Depan
+
+Dokumen `prompt_aplikasi_wolfbot.txt` ini dirancang sebagai sumber kebenaran tunggal untuk pemahaman proyek Wolfbot. Jika ada kebutuhan untuk melakukan perbaikan atau peningkatan pada UI, UX, atau konten aplikasi di masa mendatang, Anda dapat memodifikasi atau menambahkan bagian ke file ini.
+
+**Cara Menggunakan Dokumen Ini untuk Peningkatan:**
+
+1.  **Identifikasi Area Peningkatan:** Tentukan bagian mana dari aplikasi yang perlu ditingkatkan (misalnya, "Saya ingin meningkatkan tampilan komponen `UserInformation.tsx`", atau "Saya ingin menambahkan fitur baru untuk visualisasi riwayat taruhan").
+2.  **Deskripsikan Peningkatan:** Tambahkan deskripsi yang jelas dan ringkas tentang peningkatan yang diinginkan di bagian yang relevan dari dokumen ini. Gunakan bahasa yang spesifik dan terukur.
+    *   **Untuk UI/UX:** Jelaskan perubahan visual, interaksi, atau alur pengguna yang diinginkan. Sertakan detail seperti warna, tata letak, responsivitas, atau animasi.
+    *   **Untuk Konten/Fungsionalitas:** Jelaskan fitur baru, perubahan pada logika yang ada, atau data baru yang perlu ditampilkan.
+3.  **Contoh Penambahan (Hipotesis):**
+    ```
+    # Bagian 5. Fitur dan Komponen Kunci
+
+    ...
+
+    *   **Informasi Pengguna (`src/components/dashboard/UserInformation.tsx`)**:
+        *   **Peningkatan UX (Masa Depan):** Tambahkan indikator visual (misalnya, ikon hijau/merah) di samping saldo untuk menunjukkan tren naik/turun dalam 24 jam terakhir. Data tren akan diambil dari endpoint API baru `/api/wolfbet/user/trend`.
+        *   **Peningkatan UI (Masa Depan):** Ubah tata letak informasi pengguna menjadi kartu yang lebih modern dengan latar belakang gradien dan font yang lebih besar untuk saldo.
+    ```
+4.  **Berikan Instruksi kepada AI:** Setelah memodifikasi file ini, Anda dapat memberikan instruksi kepada AI seperti: "Lihat `prompt_aplikasi_wolfbot.txt`. Lakukan peningkatan UI/UX yang dijelaskan di bagian 'Informasi Pengguna'."
+
+Dengan pendekatan ini, AI akan dapat merujuk kembali ke dokumen ini untuk memahami konteks proyek secara mendalam dan melakukan perubahan yang konsisten dengan visi Anda.
